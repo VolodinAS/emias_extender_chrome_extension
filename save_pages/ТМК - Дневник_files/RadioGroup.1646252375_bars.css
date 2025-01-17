@@ -1,0 +1,16 @@
+nobr[cmptype="RadioItem"]{
+    line-height: 22px;
+    display: inline-block;
+    vertical-align: middle;
+}
+nobr[cmptype="RadioItem"] span{
+    line-height: 22px;
+    display: inherit !important;
+}
+nobr[cmptype="RadioItem"] input{
+    line-height: 22px;
+    height: 22px;
+    display: inherit !important;
+    margin: -2px 0 0 0;
+    vertical-align: middle;
+}

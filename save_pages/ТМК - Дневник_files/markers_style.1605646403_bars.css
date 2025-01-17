@@ -1,0 +1,51 @@
+.markers_wrapper {
+    visibility: visible;
+}
+
+.markers .marker {
+    height: 30px;
+    border: none;
+}
+
+.markers .marker_name{
+    display: block;
+    line-height: 30px;
+    font-weight: bold;
+    margin-left: 5px;
+}
+
+.markers .marker--hidden{
+    display: none;
+}
+
+.markers--inGrid .markers_fieldset {
+    visibility: hidden;
+    -webkit-margin-start: 0px;
+    -webkit-margin-end: 0px;
+    -webkit-padding-before: 0em;
+    -webkit-padding-start: 0em;
+    -webkit-padding-end: 0em;
+    -webkit-padding-after: 0em;
+    min-width: -webkit-min-content;
+    padding: 0;
+    margin: 0;
+    border: 0;
+}
+
+.markers--inGrid .markers_legend {
+    display: none;
+}
+
+.markers--inGrid .marker {
+    height: 6px;
+    border: none;
+    border-bottom: 1px lightgrey solid;
+}
+
+.markers--inGrid .marker_name{
+    display: none;
+}
+
+.markers--inGrid .marker--hidden{
+    display: block;
+}

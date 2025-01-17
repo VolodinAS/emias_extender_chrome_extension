@@ -1,0 +1,1402 @@
+SYS_ControlActions['Grid']=new Array();
+SYS_ControlActions['Grid']['value']={set:Grid_SetValue,get:Grid_GetValue};
+SYS_ControlActions['Grid']['caption']={set:Grid_SetCaption,get:Grid_GetCaption};
+SYS_ControlActions['Grid']['data']={set:Grid_SetData,get:Grid_GetData};
+SYS_ControlActions['Grid']['locate']={set:Grid_SetLocate,get:Grid_GetLocate};
+SYS_ControlActions['Grid']['immediatelocate']={set:Grid_SetImmediateLocate}; // адекватно работает при передаче null
+SYS_ControlActions['Grid']['hint']={set:_setHint,get:_getHint};
+SYS_ControlActions['Grid']['visible']={set:Grid_SetVisible,get:Grid_GetVisible};
+SYS_ControlActions['Grid']['settings']={set:Grid_SetSettings,get:Grid_GetDefaultSettings};
+SYS_ControlActions['Grid']['grid_caption']={set:Grid_SetGridCaption,get:Grid_GetGridCaption};
+
+SYS_ControlActions['GridRow']=new Array();
+SYS_ControlActions['GridRow']['value']={set:GridRow_SetValue,get:GridRow_GetValue};
+SYS_ControlActions['GridRow']['caption']={set:GridRow_SetCaption,get:GridRow_GetCaption};
+SYS_ControlActions['GridRow']['hint']={set:_setHint,get:_getHint};
+
+SYS_ControlActions['Grid']['changed']={get:Grid_hasChaged};
+
+function Grid_SetData(_domObject,_dataArray) {
+    _domObject.data = _dataArray;
+};
+
+function Grid_GetData(_domObject) {
+    return _domObject.data;
+};
+
+function Grid_GetValue(_domObject) {
+    return getProperty(_domObject, 'activ_keyvalue', '');
+};
+
+function Grid_SetValue(_domObject, _value) {
+
+    _domObject.setAttribute('old_keyvalue', Grid_GetValue(_domObject));
+    _domObject.setAttribute('activ_keyvalue', _value || '');};
+
+function Grid_hasChaged(_domObject) {
+
+    if(getProperty(_domObject,'activ_keyvalue','') == getProperty(_domObject,'old_keyvalue','')){
+        return false;
+    }
+    else {
+        _domObject.setAttribute('old_keyvalue', Grid_GetValue(_domObject));
+        return true;
+    }
+};
+function Grid_GetCaption(_domObject)
+{
+    return getProperty(_domObject,'activ_captionvalue','');
+};
+
+function Grid_SetCaption(_domObject,_value ) {
+
+    _domObject.setAttribute('activ_captionvalue', _value);
+};
+
+function Grid_SetLocate(_domObject,_value) {
+
+    _domObject.locate=_value;
+};
+
+function Grid_GetLocate(_domObject) {
+
+    return _domObject.locate;
+};
+
+function GridRow_GetValue(_domObject) {
+
+    return getProperty(_domObject,'keyvalue','');
+};
+
+function GridRow_SetValue(_domObject,_value ) {
+
+    _domObject.setAttribute('keyvalue', _value);
+};
+
+function GridRow_GetCaption(_domObject) {
+
+    return getProperty(_domObject,'captionvalue','');
+};
+
+function GridRow_SetCaption(_domObject,_value ) {
+
+    _domObject.setAttribute('captionvalue', _value);
+};
+
+function setThisActivRow(_domObject, _onchange) { /* _onchange = true - выполнять onchange всегда */
+    if (getVar('OFFActivRow')) {
+        setVar('OFFActivRow', false);
+        return;
+    }
+
+    var _con = GetConteiner(_domObject, 'Grid');
+    var _newactivkey;
+    if (hasProperty(_domObject, 'keyvalue')){
+        _newactivkey = _domObject.attributes['keyvalue'].value;
+    } else {
+        return;}
+
+    var _activkey;
+    if (hasProperty(_con, 'activ_keyvalue')) _activkey = _con.attributes['activ_keyvalue'].value;
+
+    if (_activkey === _newactivkey && _onchange !== true && _con.activeRow === _domObject) {
+        _domObject.classList.add('active');
+        return;
+    }
+
+    _setStripeWithActionRow(_con, _newactivkey, _domObject);
+
+    RowActivate(_domObject);
+};
+
+function setFirstActivRow(_domObject) {
+    var
+        grid = _domObject,
+        gridRows = grid.querySelectorAll('tr[cmptype="GridRow"]'),
+        refresh = true;
+
+    for (var i = 0; i < gridRows.length; i++) {
+        var row = gridRows[i];
+        if (row.style.display !== 'none') {
+            RowActivate(row);
+            refresh = false;
+            break;
+        }
+    }
+
+    //если в таблице не осталось ни одной активной записи, то надо сбросить значения в гриде и соотетственно обновить детейлы
+    if (refresh) {
+        grid.activeRow = null;
+        Grid_Reset(grid);
+        Grid_SetData(grid, []);
+        execDomEvent(grid, 'onchange');
+    }
+};
+
+function RowActivate(_domObject) { /* строка которую надо сделать активной */
+    if (!hasProperty(_domObject, 'keyvalue')) return;
+    var _con = GetConteiner(_domObject, 'Grid');
+    _setStripeWithActionRow(_con, null, _domObject);
+    Grid_SetValue(_con, _domObject.attributes['keyvalue'].value);
+
+    if (typeof (_domObject.clone) != 'undefined') {
+        Grid_SetData(_con, _domObject.clone.data);
+    } else {
+        Grid_SetData(_con, {});
+    }
+
+    if (hasProperty(_domObject, 'captionvalue')) {
+        Grid_SetCaption(_con, _domObject.attributes['captionvalue'].value);
+    }
+
+    _con.activeRow = _domObject;
+    execDomEvent(_con, 'onchange');
+};
+function DetailRefresh(_dom, _dataSetName) {
+    var _activ_keyvalue = getControlValue(_dom);
+    setVar(_dataSetName + '_parent', _activ_keyvalue);
+    var obj = getPage(0).form;
+    refreshDataSet(_dataSetName);
+};
+
+function Grid_Reset(_domObject) {
+    if (getProperty(_domObject, 'activ_keyvalue', '')) {
+        Grid_SetValue(_domObject, null);
+    }
+    if (hasProperty(_domObject, 'activ_captionvalue')) Grid_SetCaption(_domObject, null);
+};
+
+
+// Поиск строки в гриде по значению
+function Grid_GetRowByValue(_domObject, _value) {
+    if (empty(_value) || !_domObject) return;
+
+    var repeaterName = _domObject.getAttribute('name') + '_Row';
+    if (repeaterName in getPage().form.GetRepiters()) {
+        var rows = getCloneObjectsByRepeaterName(repeaterName, repeaterName);
+        for (var i = 0, l = rows.length; i < l; i++) {
+            if (_value == getControlValue(rows[i])) {
+                return rows[i];
+            }
+        }
+    }
+    return false
+};
+
+/* ф-ция ищет строку по значению, и если находит, то позиционируется на ней и возвращает true, иначе выдает false*/
+function Grid_LocateToValue(_domObject, _value) {
+    if (empty(_value)) return;
+    _con = _domObject;
+    var _dsname = getProperty(_domObject, 'dataset', '');
+    // находим нужную строку
+    var _row = _domObject.getElementsByTagName('tr');
+    for (var _i = 0; _i < _row.length; _i++) {
+        if (!empty(_row[_i])) {
+            if (getProperty(_row[_i], 'cmptype') == 'GridRow' && _row[_i].style.display != 'none') {
+                if (_getControlProperty(_row[_i], 'value') == _value) {
+                    setThisActivRow(_row[_i], true);
+                    //прокрутка таблицы
+                    var cont = _domObject.D3Store._conts_.data;
+                    if (cont.offsetHeight != 0)
+                        cont.scrollTop = _row[_i].offsetTop - cont.offsetHeight / 2;
+                    Grid_SetLocate(_domObject, null);
+                    return true;
+                }
+            }
+        }
+    }
+// добавлено Рамилем, если не нашли нужного значения, то снимаем выбор
+    var _activkey;
+    if (hasProperty(_domObject, 'activ_keyvalue')) _activkey = _con.attributes['activ_keyvalue'].value;
+
+    _setStripeWithActionRow(_con, _activkey);
+
+    Grid_SetValue(_domObject, null); //_domObject.setAttribute('activ_keyvalue', null);
+    return false;
+};
+
+function _setStripeWithActionRow(_domObject, _activkey, _activeRow) {
+    var newActiveRow;
+
+    if (_activeRow) {
+        newActiveRow = _activeRow;
+    } else {
+        newActiveRow = _domObject.querySelector('tr[cmptype="GridRow"][keyvalue="' + _activkey + '"]');
+    }
+
+    Array.prototype.forEach.call(_domObject.querySelectorAll('tr[cmptype="GridRow"].active'), function (row) {
+        row.classList.remove('active')
+    });
+
+    if (newActiveRow) newActiveRow.classList.add('active');
+    if (_domObject) {
+        _domObject.D3Store.scrollHeight = 0;
+        _domObject.D3Store.scrollTop = 0;
+        _domObject.D3Store.scrollTopInPercent = 0;
+        if (!D3Api.getDomByAttr(_domObject, 'cont', 'griddata').querySelector('tbody').firstChild.classList.contains('active')) {
+            var scrollHeight = D3Api.getDomByAttr(_domObject, 'cont', 'griddatacont').scrollHeight;
+            var scrollTop = D3Api.getDomByAttr(_domObject, 'cont', 'griddatacont').scrollTop;
+            var scrollTopInPercent = scrollTop / scrollHeight;
+            _domObject.D3Store.scrollHeight = scrollHeight;
+            _domObject.D3Store.scrollTop = scrollTop;
+            _domObject.D3Store.scrollTopInPercent = scrollTopInPercent;
+        }
+    }
+};
+
+function Grid_Locate(_domObject) {
+    var _result = false;
+    var _value = _getControlProperty(_domObject, 'locate') || getProperty(_domObject, 'activ_keyvalue', '');
+    if (_value) _result = Grid_LocateToValue(_domObject, _value);
+
+    return _result;
+};
+
+function Grid_SetImmediateLocate(_domObject, _value) {
+
+    if (!Grid_LocateToValue(_domObject, _value) && _value != null)
+    {
+        _setControlProperty(_domObject, 'locate', _value);
+        var _dsname = getProperty(_domObject, 'dataset');
+        refreshDataSet(_dsname);
+    }
+};
+
+function Grid_SetVisible(_domObject, _value) {
+
+    if (_value != true && _value != 1) _value = false;
+
+    _domObject.style.display = _value != false ? '' : 'none';
+};
+
+function Grid_GetVisible(_domObject) {
+
+    return _domObject.style.display != 'none';
+};
+function dataSetToExcel(_obj, param, _repname, headPage, borderStyle)
+{
+    var _repname = (typeof(_repname) != 'string' || empty(_repname)) ? 'Отчет' : _repname;
+    var exc = {};
+    var str = 0;
+    var p = getPageByDom(_obj);
+    var selectData = {};
+    var _name = D3Api.getProperty(_obj, 'name');
+    if (_obj.getAttribute('selectListToExcel')) {
+        var selectList = _obj.getAttribute('name') && _obj.getAttribute('name') + '_SelectList';
+        selectData.data = getValue(selectList);
+        selectData.field = _obj.getAttribute('field');
+    }
+
+    var params = p.form.getFormSettings(_name);
+    if (params.profile && (params.profile in params.profiles)) {
+        var profile = params.profiles[params.profile];
+        var order = [];
+
+        for (var i = 0, c = _obj.D3Store.cols.length; i < c; i++) {
+            var cl = _obj.D3Store.cols[i];
+
+            if (profile && profile.cols && profile.cols[cl.name] && +profile.cols[cl.name].show) {
+                order[+profile.cols[cl.name].order] = i;
+            } else if ((profile && !profile.cols) || !cl.name) {
+                order[i] = i;
+            }
+        }
+        for (var i = 0, c = order.length; i < c; i++) {
+            if (order[i] === undefined) continue;
+            if (_obj.D3Store.cols[order[i]].doms[0].col.parentNode && _obj.D3Store.cols[order[i]].field && typeof (_obj.D3Store.paramsExcel[_obj.D3Store.cols[order[i]].field]) !== 'undefined') {
+                exc[_obj.D3Store.cols[order[i]].field] = _obj.D3Store.paramsExcel[_obj.D3Store.cols[order[i]].field];
+                str = 1;
+            }
+        }
+    } else {
+        for (var i = 0; i < _obj.D3Store.cols.length; i++) {
+            if (_obj.D3Store.cols[i].doms[0].col.parentNode && _obj.D3Store.cols[i].field && typeof (_obj.D3Store.paramsExcel[_obj.D3Store.cols[i].field]) !== 'undefined') {
+                exc[_obj.D3Store.cols[i].field] = _obj.D3Store.paramsExcel[_obj.D3Store.cols[i].field];
+                str = 1;
+            }
+        }
+    }
+    if (str == 0) {
+        alert('Выберите поля для выгрузки!');
+        return;
+    }
+    exportDataSetToExcel(param, exc, _repname, null, null, headPage, borderStyle, selectData);
+};
+
+function addParamToObj(_obj, key, capt) {
+
+    _obj.D3Store.paramsExcel[key] = capt;
+};
+
+function delParamToObj(_obj, key) {
+
+    delete _obj.D3Store.paramsExcel[key];
+};
+
+function resizeCol(dom, _onAutoHeightColumn) {
+    if (!('_conts_' in dom.D3Store)) {
+        return;
+    }
+    Grid_displayShow(dom);
+    if (!D3Api.hasProperty(dom, 'calc_width')) {
+        //Таблицы колонок и данных
+        if (dom.D3Store.isWidth !== true) {
+            var cols = dom.D3Store.cols;
+            for (var i = 0; i < cols.length; i++) {
+                if (cols[i].field != '') {
+                    var doms = cols[i].doms;
+                    for (var j = 0; j < doms.length; j++) {
+                        if (doms[j].col.tagName.toLocaleLowerCase() == 'col') {
+                            if (D3Api.getProperty(doms[j].col, 'auto_width', 'false') == 'true') {
+                                doms[j].col.oldwidth = doms[j].col.width;
+                                doms[j].col.width = '';
+                            }
+                        }
+                    }
+                }
+            }
+            if (dom.offsetWidth > 0) {
+                dom.style.width = '';
+                dom.style.width = dom.offsetWidth + 'px';
+            }
+            for (var i = 0; i < cols.length; i++) {
+                if (cols[i].field != '') {
+                    var doms = cols[i].doms;
+                    for (var j = 0; j < doms.length; j++) {
+                        if (doms[j].col.tagName.toLocaleLowerCase() == 'col') {
+                            if (D3Api.getProperty(doms[j].col, 'auto_width', 'false') == 'true') {
+                                doms[j].col.width = doms[j].col.oldwidth;
+                                delete doms[j].col.oldwidth;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if (_onAutoHeightColumn === true) {
+        var columns = dom.D3Store._conts_.columns.cloneNode(true);
+        var data = dom.D3Store._conts_.data.cloneNode(true);
+        document.body.insertBefore(columns, document.body.childNodes[1]);
+        columns.style.position = 'absolute';
+        columns.style.zIndex = 1000;
+        columns.style.whiteSpace = 'nowrap';
+        columns.style.width = 'auto';
+        var colgroup = D3Api.getDomBy(columns, 'colgroup');
+        if (colgroup) {
+            colgroup.remove();
+        }
+        var tables = D3Api.getAllDomBy(columns, 'table.table_caption');
+        if (tables) {
+            for (var i = 0; i < tables.length; i++) {
+                tables[i].classList.remove('table_caption');
+            }
+        }
+        var div = D3Api.getAllDomBy(columns, '[cont="container_head"]');
+
+        var obj = {
+            head: {},
+            data: {},
+            dataWidth: dom.D3Store._conts_.data.parentNode.offsetWidth
+        };
+        for (var i = 0; i < div.length; i++) {
+            div[i].style.display = 'inline-block';
+            var column_name = D3Api.getProperty(div[i].parentNode, 'column_name');
+            obj['head'][column_name] = div[i].offsetWidth
+        }
+        columns.remove();
+
+        document.body.insertBefore(data, document.body.childNodes[1]);
+        data.style.position = 'absolute';
+        data.style.zIndex = 1000;
+        data.style.whiteSpace = 'nowrap';
+        data.style.width = 'auto';
+
+        var cols = D3Api.getAllDomBy(data, 'col[column_name]');
+        if (cols) {
+            for (var i = 0; i < cols.length; i++) {
+                cols[i].width = '';
+                var column_name = D3Api.getProperty(cols[i], 'column_name');
+                obj['data'][column_name] = cols[i].offsetWidth
+            }
+        }
+        data.remove();
+        var set_width = 0;
+        var auto_wdths = [];
+        var cols = dom.D3Store.cols;
+        var percent = [];
+        for (var i = 0; i < cols.length; i++) {
+            if (cols[i].auto_width === true) {
+                var doms = cols[i].doms;
+                var width = Math.max(
+                    function () {
+                        if (('field' in cols[i]) && (cols[i].field in obj['head'])) {
+                            return obj['head'][cols[i].field];
+                        } else if (('name' in cols[i]) && (cols[i].name in obj['head'])) {
+                            return obj['head'][cols[i].name];
+                        }
+                    }(), function () {
+                        if (('field' in cols[i]) && (cols[i].field in obj['data'])) {
+                            return obj['data'][cols[i].field];
+                        } else if (('name' in cols[i]) && (cols[i].name in obj['data'])) {
+                            return obj['data'][cols[i].name];
+                        }
+                    }());
+                set_width += width;
+                auto_wdths.push(cols[i]);
+                for (var j = 0; j < doms.length; j++) {
+                    if (doms[j].col.tagName.toLocaleLowerCase() == 'col') {
+                        if ((cols[i].field in obj['head']) || (('name' in cols[i]) && (cols[i].name in obj['head']))) {
+                            doms[j].col.width = width;
+                        }
+                    }
+                }
+            } else {
+                var doms = cols[i].doms;
+                var width = null;
+                if (/^\d+$/.test(cols[i].width)) {
+                    width = Number.parseFloat(cols[i].width);
+                    set_width += width;
+                    for (var j = 0; j < doms.length; j++) {
+                        if (doms[j].col.tagName.toLocaleLowerCase() == 'col') {
+                            if ((cols[i].field in obj['head']) || (('name' in cols[i]) && (cols[i].name in obj['head']))) {
+                                doms[j].col.width = width;
+                            }
+                        }
+                    }
+                } else {
+                    if (/^\d+%/.test(cols[i].width)) {
+                        /* процент */
+                        width = cols[i].doms[0].col.offsetWidth;
+                        for (var j = 0; j < doms.length; j++) {
+                            if (doms[j].col.tagName.toLocaleLowerCase() == 'col') {
+                                if ((cols[i].field in obj['head']) || (('name' in cols[i]) && (cols[i].name in obj['head']))) {
+                                    doms[j].col.width = cols[i].width;
+                                }
+                            }
+                        }
+                        percent.push(cols[i]);
+                    } else if (/^\d+px/.test(cols[i].width)) {
+                        width = Number.parseFloat(cols[i].width);
+                        set_width += width;
+                        for (var j = 0; j < doms.length; j++) {
+                            if (doms[j].col.tagName.toLocaleLowerCase() == 'col') {
+                                if ((cols[i].field in obj['head']) || (('name' in cols[i]) && (cols[i].name in obj['head']))) {
+                                    doms[j].col.width = width;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if (percent.length > 0) {
+            for (var i = 0; i < percent.length; i++) {
+                var doms = percent[i].doms;
+                var width = doms[0].col.offsetWidth;
+                set_width += width;
+                for (var j = 0; j < doms.length; j++) {
+                    if (doms[j].col.tagName.toLocaleLowerCase() == 'col') {
+                        if ((cols[i].field in obj['head']) || (('name' in cols[i]) && (cols[i].name in obj['head']))) {
+                            doms[j].col.width = width;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (set_width < obj.dataWidth) {
+            /*
+             * установленные колонки ниже чем сама таблица.
+             * Колонки будут пропорционально растянуты самим браузером.
+             * Расширим размеры у авторрастягивающих колонок
+             */
+            var old_width = obj.dataWidth - set_width;
+            if (auto_wdths.length > 0) {
+                /*
+                 * разделим недостаюзий размер на равные части расширяемых колонок
+                 */
+                var w = Math.ceil(old_width / auto_wdths.length);
+                for (var i = 0; i < auto_wdths.length; i++) {
+                    if (auto_wdths[i].field == '') {
+                        continue;//мультисел колонка с чекбоксом игнорируем
+                    }
+                    var doms = auto_wdths[i].doms;
+                    for (var j = 0; j < doms.length; j++) {
+                        if (doms[j].col.tagName.toLocaleLowerCase() == 'col') {
+                            doms[j].col.width = Number.parseFloat(doms[j].col.width) + w;
+                        }
+                    }
+                }
+
+            } else {
+                /*
+                 * у всех колонк присутствует кастомный размер.
+                 * расширим последнюю колонку
+                 */
+                var col = cols[cols.length - 1];
+                var doms = cols[cols.length - 1].doms;
+                for (var j = 0; j < doms.length; j++) {
+                    if (doms[j].col.tagName.toLocaleLowerCase() == 'col') {
+                        if (col.field in obj['head']) {
+                            var width = Math.max(obj['head'][col.field], obj['data'][col.field]);
+                            set_width += width;
+                            doms[j].col.width = width;
+                        }
+
+                    }
+                }
+            }
+        }
+    }
+
+    Grid_autoHeadData(dom);
+    Grid_displayHidden(dom);
+    D3Api.GridCtrl.resize(dom);
+    //TODO разобраться зачем оно вообще тут нужно
+    //if(dom.D3Store.isResize !== true){
+    //    runCalcSize();
+    //}
+    resizeCol.scrollOnNearest = function(grid) {
+        var tr = grid.querySelector('tr.active');
+        if (tr) {
+            var grid_data = grid.querySelector('.grid_data');
+            var scrollHeight = grid.D3Store.scrollHeight;
+            var scrollTopInPercent = grid.D3Store.scrollTopInPercent;
+            grid_data.scrollTop = scrollHeight * scrollTopInPercent;
+            // Если идёт добавление новой записи и мы не на первой строке, позиционируем запись в середине грида
+            if (empty(grid.getAttribute('old_keyvalue')) || grid.getAttribute('old_keyvalue') === grid.getAttribute('activ_keyvalue')) {
+                var firstRow = grid.querySelector('.grid_data > .grid_data tbody').firstChild;
+                if (firstRow && !firstRow.classList.contains('active')) {
+                    grid.querySelector('.grid_data tr.active').scrollIntoView({block: 'nearest'});
+                    // Проверяем что фильтр существует, открыт и выделенная запись находится в высоте Grid
+                    if ((D3Api.getDomByAttr(grid, 'cont', 'gridfilter') && D3Api.getDomByAttr(grid, 'cont', 'gridfilter').classList.contains('filter-block'))
+                        && (grid.activeRow && grid.activeRow.getBoundingClientRect().y < grid.offsetHeight)) {
+                        grid_data.scrollTop = grid_data.scrollTop - D3Api.getDomByAttr(grid, 'cont', 'gridfilterscont').offsetHeight;
+                    }
+                    D3Api.GridCtrl.resize(dom);
+                }
+            }
+        }
+    }
+
+    Array.from(document.querySelectorAll('div[cmptype="Grid"]')).forEach(function(grid) {
+        resizeCol.scrollOnNearest(grid);
+    });
+};
+
+function Grid_autoHeadData(dom) {
+    if (D3Api.hasProperty(dom, 'calc_height')) {
+        return;
+    }
+    if (dom.offsetHeight === 0) {
+        return;
+    }
+    dom.D3Store.isSetAutoHead = true;
+    var page = getPageByDom(dom);
+
+    if ('cmpAutoHeight' in page) {
+        var olds = [];
+        for (var i = 0; i < page.cmpAutoHeight.length; i++) {
+            if (page.cmpAutoHeight[i].D3Store.isHeight) {
+                continue;
+            }
+            if (page.cmpAutoHeight[i].offsetHeight !== 0) {
+                olds.push({
+                    dom: page.cmpAutoHeight[i],
+                    height: page.cmpAutoHeight[i].offsetHeight
+                })
+            }
+        }
+        /* скрываем все отображаемые гриды дабы получить размеры установленными браузером*/
+        for (var i = 0; i < olds.length; i++) {
+            if (D3Api.hasClass(olds[i].dom, 'filterShowed')) {
+                olds[i].calc = olds[i].dom.D3Store._conts_.gridcont.style.height;
+                dom.D3Store._conts_.gridcont.style.height = '';
+            }
+            var tbody = olds[i].dom.D3Store._conts_.data.tBodies[0];
+            tbody.style.display = 'none';
+            olds[i].dom.style.height = '';
+        }
+        for (var i = 0; i < olds.length; i++) {
+            if (olds[i].dom.D3Store._conts_.datacont.offsetHeight <= 100) {
+                olds[i].height = 450;
+            } else {
+                olds[i].height = olds[i].dom.offsetHeight
+            }
+        }
+        for (var i = 0; i < olds.length; i++) {
+            olds[i].dom.D3Store._conts_.gridcont.style.height = olds[i].calc;
+        }
+        for (var i = 0; i < olds.length; i++) {
+            olds[i].dom.style.height = olds[i].height + 'px';
+        }
+        for (var i = 0; i < olds.length; i++) {
+            var tbody = olds[i].dom.D3Store._conts_.data.tBodies[0];
+            tbody.style.display = '';
+        }
+    }
+
+};
+
+function Grid_onbeforeRefresh(dom) {
+
+};
+
+function Grid_onafterRefresh(dom) {
+    dom.D3Store.isDataSet = true;
+    if (!Grid_Locate(dom)) {
+        setFirstActivRow(dom);
+    }
+    resizeCol(dom, true);
+
+
+};
+
+function Grid_displayShow(dom) {
+    if ('dna' in dom) {
+        return
+    }
+    var dna = []
+    var pn = dom;
+    while (pn && pn.nodeName != '#document') {
+        if (pn.style.display == 'none') {
+            pn.style.display = '';
+            dna.push(pn);
+        }
+        pn = pn.parentNode;
+    }
+    dom.dna.push(dna)
+};
+
+function Grid_displayHidden(dom) {
+    if (dom.dna.length === 0) {
+        return
+    }
+
+    var dna = dom.dna[dom.dna.length - 1];
+    for (var i = 0; i < dna.length; i++) {
+        dna[i].style.display = 'none';
+    }
+    dom.dna.pop();
+};
+
+function onShowGrid(dom, _name) {
+    Grid_displayShow(dom);
+    var page = getPageByDom(dom)
+    D3Api.GridCtrl.resize(dom);
+    D3Api.addEvent(dom.D3Store._conts_.datacont, 'scroll', function() {
+        D3Api.GridCtrl.resize(dom)
+    }, true);
+    var ev = D3Api.Base.addEvent('onResize', function() {
+        resizeCol(dom);
+    });
+    page.addListener('onafterclose', function() {
+        D3Api.Base.removeEvent('onResize', ev);
+    });
+    Grid_displayHidden(dom);
+    var range = Grid_GetRangeControl(dom);
+    if (range) {
+        rangeViewComboCreated(range);
+    }
+};
+
+function ToogleDisplayFilter(_grid_name, fl) {
+    if ('init' in getControlByName(_grid_name).D3Store) {
+        var toggleFilter = D3Api.getDomBy(getControlByName(_grid_name), '.toggleFilter');
+        D3Api.GridCtrl.toggleFilter(toggleFilter);
+    } else {
+        getControlByName(_grid_name).D3Store.showDisplayFilter = true;
+        /* компонент еще не инициализировался */
+    }
+
+};
+
+function oncreateGrid(_Name, dom) {
+    dom.dna = [];
+    dom.D3Store.init = true;
+    dom.D3Store.m2 = true;
+    dom.D3Store.repeater = D3Api.getDomByAttr(dom, 'cont', 'gridrow');
+    dom.D3Store.isHeight = dom.style.height !== '';
+    dom.D3Store.isWidth = dom.style.width !== '';
+    dom.D3Store.profileMenu = D3Api.getDomByAttr(dom, 'cont', 'GridProfileSettingsMenu');
+    dom.D3Store.gridcaptioncontent = D3Api.getDomByAttr(dom, 'cont', 'gridcaptioncontent');
+    dom.D3Store.paramsExcel = {};
+    dom.D3Store.dataSetName = D3Api.getProperty(dom.D3Store.repeater, 'dataset', '');
+    dom.D3Store.waitDom = D3Api.getDomByAttr(dom, 'cont', 'grid_wait');
+    dom.D3Store.profile = D3Api.getBoolean(D3Api.getProperty(dom, 'profile', 'true'));
+    dom.D3Store.excel = D3Api.getBoolean(D3Api.getProperty(dom, 'excel', 'false'));
+    dom.D3Store.export_template = D3Api.getProperty(dom, 'export_template', 'Modules/ExportByDataset/template.ods'); // шаблон для выгрузки в LibreOffice
+    dom.D3Store.export_header = D3Api.getProperty(dom, 'export_header', '{}'); // дополнительные переменные для передачи в шаблон
+    dom.D3Store.columns_to_sum = D3Api.getProperty(dom, 'columns_to_sum', []);// колонки для суммирования
+    dom.D3Store.repeaterName = D3Api.BaseCtrl.getName(dom) + '_repeater';
+    dom.D3Store.popupMenu = D3Api.getProperty(dom, 'popupmenu') || D3Api.getProperty(dom, 'popupmenu_actions');
+    dom.D3Store.popup_log_unit = D3Api.getProperty(dom, 'popup_log_unit', null);
+    dom.D3Store._conts_ = {};
+    dom.D3Store._conts_.data = D3Api.getDomByAttr(dom, 'cont', 'griddata');
+    dom.D3Store._conts_.datacont = D3Api.getDomByAttr(dom, 'cont', 'griddatacont');
+    dom.D3Store._conts_.columns = D3Api.getDomByAttr(dom, 'cont', 'gridcolumns');
+    dom.D3Store._conts_.columnscont = D3Api.getDomByAttr(dom, 'cont', 'gridcolumnscont');
+    dom.D3Store._conts_.filters = D3Api.getDomByAttr(dom, 'cont', 'gridfilter');
+    dom.D3Store._conts_.windowfunction = D3Api.getDomByAttr(dom, 'cont', 'gridwindowfunction');
+    dom.D3Store._conts_.filterpanel = D3Api.getDomByAttr(dom, 'cont', 'gridfilterpanel');
+    dom.D3Store._conts_.footerpanel = D3Api.getDomByAttr(dom, 'cont', 'gridfootercont');
+    dom.D3Store._conts_.filterscont = D3Api.getDomByAttr(dom, 'cont', 'gridfilterscont');
+    dom.D3Store._conts_.gridcont = D3Api.getDomByAttr(dom, 'cont', 'gridcont');
+    dom.D3Store.cols = [];
+    dom.D3Store.defaultCols = []; // Для профиля
+    //TODO: хак чтобы грид растягивался
+    dom.D3Store._conts_.datacont.style.height = '100%';
+    var page = getPageByDom(dom);
+    page.cmpAutoHeight.push(dom);
+    var cols = D3Api.getAllDomBy(dom.D3Store._conts_.columns, 'td[column_name]');
+    for (var i = 0, c = cols.length; i < c; i++) {
+        var f = D3Api.getProperty(cols[i], 'cont');
+        var name = D3Api.getProperty(cols[i], 'column_name');
+        var col = D3Api.getDomBy(dom.D3Store._conts_.columns, 'col[column_name="' + name + '"]');
+        var SelList = D3Api.getDomBy(cols[i], 'div[cmptype="SelectList"]') != null;
+        var caption = D3Api.getTextContent(cols[i]);
+        var sortItemCol = D3Api.getDomByAttr(cols[i], 'cmptype', 'SortItem');
+        var sortorder = '';
+        if (sortItemCol) {
+            sortorder = D3Api.getProperty(sortItemCol, 'sortorder', '');
+        }
+
+        if (!SelList && D3Api.empty(f) && !D3Api.empty(caption)) {
+            f = D3Api.crc32(caption);
+            D3Api.setProperty(cols[i], 'cont', f);
+        }
+        var colInfo = {
+            name: name,
+            field: f,
+            auto_width: D3Api.hasProperty(col, 'auto_width'),
+            caption: caption,
+            align: undefined,
+            doms: [],
+            defaultShow: true,
+            sortEnabled: sortItemCol ? true : false,
+            SortOrder: sortorder,
+            _show: true,
+            _sl: SelList //является колонкой селектлиста
+        };
+        if (SelList) {
+            if (!('range' in dom.D3Store) || !dom.D3Store.range) {
+                //если у грида нет постраничной навигации то метод checkAll не запрашивать у бд все айдишки
+                D3Api.setProperty(cols[i], 'usedom', 'true');
+            }
+        }
+        var cls = D3Api.getAllDomBy(dom, '[column_name="' + colInfo.name + '"][index]');
+        for (var ii = 0, cc = cls.length; ii < cc; ii++) {
+            if (cls[ii].nodeName == 'COL') {
+                colInfo.width = cls[ii].width;
+                // TODO: profile_hidden - скрывает столбец в Grid
+                colInfo.defaultShow = D3Api.getProperty(cls[ii], 'profile_hidden', '') != 'true';
+            } else if (cls[ii].nodeName == 'TD' && D3Api.hasClass(cls[ii], 'column_data'))
+                colInfo.align = cls[ii].style.textAlign;
+            colInfo.doms.push({parentNode: cls[ii].parentNode, col: cls[ii]});
+        }
+        dom.D3Store.cols.push(colInfo);
+        dom.D3Store.defaultCols.push(Object.assign({}, colInfo));
+    }
+    if (!('hideCols' in dom.D3Store)) {
+        dom.D3Store['hideCols'] = [];
+    } else {
+        for (var i = 0; i < dom.D3Store['hideCols'].length; i++) {
+            dom.D3Store.cols.forEach(function (colDOM) {
+                if (colDOM.field === dom.D3Store['hideCols'][i]) {
+                    Grid_hideColDoms(colDOM);
+                }
+            })
+        }
+        dom.D3Store['hideCols'] = [];
+    }
+    if (('showDisplayFilter' in dom.D3Store) && dom.D3Store.showDisplayFilter === true) {
+        var toggleFilter = D3Api.getDomBy(getControlByName(D3Api.getProperty(dom, 'name')), '.toggleFilter');
+        D3Api.GridCtrl.toggleFilter(toggleFilter);
+        delete dom.D3Store.showDisplayFilter;
+    }
+    Object.defineProperty(dom, 'COLS', {
+        get: function() {
+            console.warn('%cУстаревшее: Свойство getControlByName().COLS является устаревшим. Необходимо использовать getControlByName().D3Store.cols', "color: yellow; font-style: italic; background-color: green; padding: 2px;");
+            return dom.D3Store.cols;
+        },
+    });
+};
+
+function Grid_onResize(dom) {
+    dom.D3Store.isResize = true;
+    resizeCol(dom);
+    dom.D3Store.isResize = false;
+};
+function unitViewSettings(method_id){
+    if(empty(method_id))return;
+    setVar('METHOD_ID',method_id);
+    openWindow({name:'UniversalComposition/UniversalComposition',unit:'SHOW_METHOD_COLS', composition:'SETTINGS',show_buttons:false,parent_var:'METHOD_ID'},true,982, 482);
+};
+function onFilterClickGrid(_domObject,_DataSet,_grid_name){
+    var _filterCtrl=getControlByName('trFilter_'+_grid_name);
+    if(_filterCtrl.style.display=='none'){
+        ToogleDisplayFilter(_grid_name);
+    }
+    else {
+        f_refresh(_domObject,_DataSet);
+    }
+};
+
+function Grid_SetSettings(dom,settings) {
+    return Grid_setProfile({
+        dom: dom,
+        gridName: getProperty(dom, 'name'),
+        refresh: false
+    });
+};
+
+function Grid_GetDefaultSettings() {
+    return D3Api.GridCtrl._getDefaultParams();
+};
+
+function getParent(dom) {
+    if (dom == null) {
+        return null;
+    }
+
+    var parent = dom.parentNode;
+    if (parent.nodeName === 'TABLE') {
+        return parent;
+    } else {
+        return getParent(parent);
+    }
+};
+
+function GridHeader_GetCol(th) {
+    var t = th.parentNode;
+    while (t.nodeName != 'TABLE')
+        t = t.parentNode;
+
+    var cg = getChildTag(t, 'colgroup', 0);
+
+    return cg.childNodes[th.cellIndex];
+};
+
+function Grid_TitleClick(event,gridName) {
+    if (event.shiftKey && confirm("Сбросить сохраненные настройки грида?")) {
+        var p = getPageByDom(event.target);
+        p.form.deleteFormSettings(gridName);
+    }
+};
+
+function Grid_createDefaultProfile(dom) {
+    var profile = {cols: {}};
+    for (var i = 0, c = dom.COLS.length; i < c; i++) {
+        profile.cols[dom.COLS[i].name] = {
+            order: i,
+            show: true,
+            width: dom.COLS[i].width,
+            align: dom.COLS[i].align,
+            whitespace: dom.COLS[i].whitespace,
+            //Профиль по умолчанию с текущей сортировкой
+            sort: (dom.COLS[i].SortItem && SortItem_GetValue(dom.COLS[i].SortItem) ? SortItem_GetValue(dom.COLS[i].SortItem) : '')
+        };
+    }
+    return profile;
+};
+
+function Grid_profileViewSettings(dom,gridName,evt) {
+    var grid = D3Api.getControlByDom(dom, 'Grid');
+    setDomVisible(grid.D3Store.profileMenu, true);
+    var ps = D3Api.getAllDomBy(dom, '[cont="GridProfileItem"]');
+    for (var i = 0; i < ps.length; i++) {
+        removeDomObject(ps[i]);
+    }
+    var p = getPageByDom(grid);
+    var params = p.form.getFormSettings(grid);
+
+    var sortP = [];
+    for (var p in params.profiles) {
+        sortP.push(p);
+    }
+    sortP.sort();
+    for (var i = 0, c = sortP.length; i < c; i++) {
+        var item = document.createElement('div');
+        item.className = 'GridProfileItem';
+        D3Api.setProperty(item, 'cont', 'GridProfileItem');
+        item.innerHTML = sortP[i];
+        item.onclick = function(p) {
+            return function(event) {
+                stopEvent(event);
+                Grid_setProfile({
+                    dom: grid,
+                    gridName: gridName,
+                    profile: p,
+                    refresh: true
+                });
+                setDomVisible(grid.D3Store.profileMenu, false);
+            }
+        }(sortP[i]);
+        grid.D3Store.profileMenu.appendChild(item);
+        if (sortP[i] == params.profile) {
+            addClass(item, 'active');
+        }
+    }
+    var coords = getPageEventCoords(evt, true);
+    setDomVisible(grid.D3Store.profileMenu, true);
+    grid.D3Store.profileMenu.style.top = coords.top + 'px';
+    var ps = GetPageWindowSize();
+    if (coords.left + grid.D3Store.profileMenu.offsetWidth > ps.pageWidth) {
+        grid.D3Store.profileMenu.style.right = 0;
+        grid.D3Store.profileMenu.style.left = null;
+    } else {
+        grid.D3Store.profileMenu.style.right = null;
+        grid.D3Store.profileMenu.style.left = coords.left + 'px';
+    }
+    setDomVisible(grid.D3Store.profileMenu, true);
+    grid.D3Store.profileMenu.focus();
+};
+
+function Grid_GetRangeControl(dom) {
+    return dom.querySelector('[cmptype="Range"]');
+};
+
+function Grid_profileOpenFormSettings(dom, gridName) {
+    var grid = D3Api.getControlByDom(dom, 'Grid');
+    var page = getPageByDom(grid);
+    var pcont = D3Api.getDomByAttr(grid, 'cont', 'grid_params_cont');
+    if (pcont.D3Container && pcont.D3Container.currentForm)
+        return;
+    //Получим параметры
+    var params = page.form.getFormSettings(gridName);
+    var ra = null;
+    var range = Grid_GetRangeControl(grid);
+    if (range) {
+        if (!params.profiles[params.profile]) {
+            params.defaultAmount = parseInt(RangeGetCountVal(range));
+            params.range_show_count = D3Api.getProperty(grid, 'show_count', false);
+        }
+
+        if (range.CountViewCombo.options) {
+            for (var i = 0, c = range.CountViewCombo.options.length; i < c; i++) {
+                ra = ra || [];
+                ra.push(ComboItem_GetValue(range.CountViewCombo.options[i]));
+            }
+        }
+    }
+
+    D3Api.showDomBlock(pcont);
+
+    openD3Form('Components/Grid/profile', true, {
+        vars: {
+            data: params,
+            cols: grid.D3Store.cols,
+            defaultCols: grid.D3Store.defaultCols,
+            rangeHas: !!range,
+            rangeAmounts: ra,
+            platformOpen: 'm2'
+        },
+        onclose: function (res) {
+            D3Api.setDomDisplayDefault(pcont);
+            if (!res) {
+                return;
+            }
+            Grid_setProfile({
+                dom: grid,
+                refresh: true
+            });
+            page.form.saveFormSettings();
+        }
+    });
+};
+
+function Grid_setProfile(_param) {
+    var dom = undefined;
+    var gridName = undefined;
+    var profile = undefined;
+    var refresh = undefined;
+    if (_param instanceof Node) {
+        if (0 in arguments) {
+            dom = arguments[0];
+        }
+        if (1 in arguments) {
+            gridName = arguments[1];
+        }
+        if (2 in arguments) {
+            profile = arguments[2];
+        }
+        if (3 in arguments) {
+            refresh = arguments[3];
+        }
+    } else {
+        if ('dom' in _param) {
+            dom = _param.dom;
+        }
+        if ('gridName' in _param) {
+            gridName = _param.gridName;
+        }
+        if ('profile' in _param) {
+            profile = _param.profile;
+        }
+        if ('refresh' in _param) {
+            refresh = _param.refresh;
+        }
+    }
+    var gName = D3Api.getProperty(dom, 'name');
+    var page = getPageByDom(dom);
+    var params = page.form.getFormSettings(dom);
+    var range = Grid_GetRangeControl(dom);
+
+    if (!params || D3Api.Equals({}, params)) {
+        params = D3Api.GridCtrl._getDefaultParams();
+    }
+
+    if (params.profiles instanceof Array) {
+        params.profiles = {};
+    }
+
+    profile = profile || params.profile || 'По умолчанию';
+    params.profile = profile.replace(/&quot;/g, '"');
+    dom.D3Store.currentProfile = profile;
+    profile = params.profiles[profile];
+
+    if (!profile) {
+        Grid_hideAllColDoms(dom.D3Store.cols);
+        Grid_showAllColDoms(dom, dom.D3Store.cols);
+        dom.D3Store.currentProfile = '';
+
+        if (range) {
+            var rangeCount = null;
+            if (dom.oldValueCount !== undefined) {
+                rangeCount = dom.oldValueCount;
+            } else {
+                rangeCount = getProperty(range, 'valuecount');
+            }
+            RangeSetCountVal(range, rangeCount);
+            ComboBox_SetValue(range.CountViewCombo, rangeCount);
+
+            if (dom.oldShowCount !== undefined) {
+                setAttribute(range, 'show_count', dom.oldShowCount);
+            }
+        }
+    } else {
+        var order = [];
+        var orderTmp = [];
+
+        if (profile.cols) {
+            for (var prop in profile.cols) {
+                if (profile.cols.hasOwnProperty(prop)) {
+                    orderTmp[profile.cols[prop].order] = {name: prop, show: profile.cols[prop].show, colsAfter: []};
+                }
+            }
+
+            var fieldBefore = '';
+            for (var i = 0, c = dom.D3Store.cols.length; i < c; i++) {
+                var cl = dom.D3Store.cols[i];
+                var found = false;
+                /* ищем есть ли она в профиле */
+                for (var i1 = 0, c1 = orderTmp.length; i1 < c1; i1++) {
+                    if (orderTmp[i1] && orderTmp[i1].name == cl.name) {
+                        orderTmp[i1].index = i;
+                        orderTmp[i1].formSortOrder = cl.SortOrder;
+                        found = true;
+                    }
+                }
+                if (found) {
+                    fieldBefore = cl.name;
+                } else {
+                    if (fieldBefore == '') { /* если разработчик поставил ее в самое начало */
+                        orderTmp[-1] = {name: cl.name, show: 1, index: i, colsAfter: []}
+                    } else {
+                        /* ищем предыдущую колонку */
+                        for (var i1 = -1, c1 = orderTmp.length; i1 <= c1; i1++) {
+                            if (orderTmp[i1] && orderTmp[i1].name == fieldBefore) {
+                                orderTmp[i1].colsAfter.push(i);
+                            }
+                        }
+                    }
+                }
+                Grid_hideColDoms(cl)
+            }
+
+            /* формируем правильный порядок */
+            for (var i = -1, c = orderTmp.length; i <= c; i++) {
+                if (orderTmp[i] === undefined) continue;
+                if (orderTmp[i] && (orderTmp[i].show == 1 || (orderTmp[i].show == 0 && orderTmp[i].formSortOrder)) && orderTmp[i].index >= 0) order.push(orderTmp[i].index);
+                if (orderTmp[i].colsAfter && orderTmp[i].colsAfter.length > 0) {
+                    for (var i1 = 0, c1 = orderTmp[i].colsAfter.length; i1 < c1; i1++) {
+                        order.push(orderTmp[i].colsAfter[i1]);
+                    }
+                }
+            }
+        }
+
+        for (var i = 0, c = order.length; i < c; i++) {
+            if (order[i] === undefined) {
+                continue;
+            }
+
+            dom.D3Store.cols[order[i]]._order = i;
+
+            var col = dom.D3Store.cols[order[i]];
+            var paramsGrid = undefined;
+            var profileShow = '';
+            // Проверка col.name, т.к. у столбца selectList нету имени
+            if (col.name && profile && profile.cols && profile.cols[col.name]) {
+                paramsGrid = profile.cols[dom.D3Store.cols[order[i]].name];
+                profileShow = profile.cols[col.name].show;
+            }
+            if (profileShow == 1 || paramsGrid === undefined) {
+                Grid_showColDoms(dom.D3Store.cols[order[i]], paramsGrid);
+            } else if (profileShow == 0 && col.SortOrder) {
+                for (var j = 0, count = col.doms.length; j < count; j++) {
+                    var sortItem = D3Api.getDomByAttr(col.doms[j].col, 'cmptype', 'SortItem');
+                    if (sortItem) {
+                        var sortOrder = (paramsGrid) ? paramsGrid.SortOrder : (col ? col.SortOrder : "");
+                        SortItem_SetValue(sortItem, sortOrder);
+                        if (!empty(sortOrder)) {
+                            SI_register(sortItem);
+                        }
+                        SI_setclass(sortItem);
+                    }
+                }
+            }
+        }
+
+        var cols = D3Api.getAllDomBy(dom.D3Store._conts_.columns, 'col[fcol]');
+        var colWidth = 0;
+        var emptyCols = [];
+        for (var i = 0, c = cols.length; i < c; i++) {
+            colWidth += +cols[i].width;
+            if (+cols[i].width <= 0)
+                emptyCols.push(D3Api.getProperty(cols[i], 'fcol'));
+        }
+        if (dom.D3Store._conts_.datacont.clientWidth < colWidth && emptyCols.length > 0) {
+            for (var i = 0, c = emptyCols.length; i < c; i++) {
+                var ecols = D3Api.getAllDomBy(dom, 'col[fcol="' + emptyCols[i] + '"]');
+                for (var j = 0, l = ecols.length; j < l; j++) {
+                    ecols[j].width = 100;
+                }
+            }
+        }
+
+
+        if (range) {
+            if (profile.amount) {
+                if (dom.oldValueCount === undefined) {
+                    dom.oldValueCount = RangeGetCountVal(range);
+                }
+                RangeValDeclare(range, profile);
+                RangeSetCountVal(range, profile.amount);
+                if (range.CountViewComboCreated) {
+                    ComboBox_SetValue(range.CountViewCombo, profile.amount);
+                }
+            }
+
+            if (profile.range_show_count !== undefined) {
+                if (!dom.oldShowCount) {
+                    dom.oldShowCount = getProperty(range, 'show_count', false);
+                }
+                setAttribute(range, 'show_count', +profile.range_show_count === 1 ? 'true' : 'false');
+            }
+        }
+    }
+
+    if (refresh === undefined || refresh) {
+        page.form.getRepeaterByName(gName + '_Row').killClones();
+        if (page.form.getRepeaterByGroupName('markersGroup')) {
+            page.form.getRepeaterByGroupName('markersGroup').killClones();
+        }
+        if (dom.D3Store.dataSetName) {
+            refreshDataSet(dom.D3Store.dataSetName);
+        }
+    }
+    resizeCol(dom);
+    return true;
+
+};
+
+function Grid_hideColDoms(col) {
+    for (var i = 0, c = col.doms.length; i < c; i++) {
+        if (col.doms[i].col.nodeName === 'TD' && D3Api.getProperty(col.doms[i].col, 'keep')) {
+            D3Api.addDom(col.doms[i].parentNode, col.doms[i].col);
+            D3Api.hideDom(col.doms[i].col);
+            D3Api.setProperty(col.doms[i].col, 'hidden', 'true');
+        } else
+            D3Api.removeDom(col.doms[i].col);
+    }
+    col._show = false;
+};
+
+function Grid_hideAllColDoms(cols) {
+    for (var i = 0, c = cols.length; i < c; i++) {
+        Grid_hideColDoms(cols[i])
+    }
+};
+
+function Grid_showAllColDoms(dom, cols) {
+    for (var i = 0, c = cols.length; i < c; i++) {
+        var ishide = false;
+        for (var j = 0; j < dom.D3Store.hideCols.length; j++) {
+            if (dom.D3Store.hideCols[j] === D3Api.getProperty(cols[i].doms[0].col, 'column_name', '')) {
+                ishide = true;
+                break;
+            }
+        }
+        if (ishide === false) {
+            Grid_showColDoms(cols[i]);
+        }
+
+    }
+};
+
+function Grid_showColDoms(col, params) {
+    for (var i = 0, c = col.doms.length; i < c; i++) {
+        if (!params && !col.defaultShow)
+            continue;
+
+        var beforeDom = null;
+        if (col.doms[i].col.nodeName === 'TD') {
+            beforeDom = D3Api.getDomByAttr(col.doms[i].parentNode, 'hidden', 'true');
+        }
+
+        if (beforeDom) {
+            D3Api.insertBeforeDom(beforeDom, col.doms[i].col);
+        } else {
+            D3Api.addDom(col.doms[i].parentNode, col.doms[i].col);
+        }
+
+        if (D3Api.getProperty(col.doms[i].col, 'keep')) {
+            D3Api.setDomDisplayDefault(col.doms[i].col);
+            D3Api.removeProperty(col.doms[i].col, 'hidden');
+        }
+        if (col.doms[i].col.nodeName === 'COL') {
+            if (!params || params.width === undefined) {
+                //D3Api.setProperty(col.doms[i].col,'auto_width','true');
+                col.doms[i].col.width = col.width;
+            } else {
+                if (params.width) {
+                    col.auto_width = false;
+                } else {
+                    col.auto_width = true;
+                }
+                col.width = params.width;
+            }
+        } else if (D3Api.hasClass(col.doms[i].col, 'column_data') || D3Api.hasClass(col.doms[i].col, 'grid__wf-column')) {
+            col.doms[i].col.style.textAlign = (!params || params.align === undefined) ? col.align : params.align;
+        }
+        var sortItem = D3Api.getDomByAttr(col.doms[i].col, 'cmptype', 'SortItem');
+        if (sortItem) {
+            var sortOrder = (params) ? params.SortOrder : (col ? col.SortOrder : "");
+            SortItem_SetValue(sortItem, sortOrder);
+            if (!empty(sortOrder)) {
+                SI_register(sortItem);
+            }
+            SI_setclass(sortItem);
+        }
+    }
+    col._show = true;
+};
+
+function Grid_showColByName(_dom, colName) {
+    if (!Array.isArray(colName)) {
+        colName = [colName]
+    }
+
+    if ('init' in _dom.D3Store) {
+        _dom.D3Store.cols.forEach(function(colDOM) {
+            for (var i = 0; i < colName.length; i++) {
+                if (colDOM.field === colName[i]) {
+                    Grid_showColDoms(colDOM);
+                }
+            }
+        })
+    } else {
+        for (var i = 0; i < colName.length; i++) {
+            var indx = _dom.D3Store.hideCols.indexOf(colName[i]);
+            if (indx > -1) {
+                _dom.D3Store.hideCols.splice(indx, 1);
+            }
+        }
+    }
+};
+
+function Grid_hideColByName(_dom, colName) {
+    if (!Array.isArray(colName)) {
+        colName = [colName]
+    }
+    if ('init' in _dom.D3Store) {
+        _dom.D3Store.cols.forEach(function(colDOM) {
+            for (var i = 0; i < colName.length; i++) {
+                if (colDOM.field === colName[i]) {
+                    Grid_hideColDoms(colDOM);
+                }
+            }
+        });
+    } else {
+        for (var i = 0; i < colName.length; i++) {
+            if (_dom.D3Store['hideCols'].indexOf(colName[i]) == -1) {
+                _dom.D3Store['hideCols'].push(colName[i]);
+            }
+        }
+    }
+};
+
+function Grid_PrintToHTML(_dom) {
+    var page = getPageByDom(_dom);
+    var name = getProperty(_dom, 'name', '');
+    var COLS = _dom.D3Store.cols;
+    var rows = getControlByName(name).querySelectorAll('tr[cmptype="GridRow"]');
+    var title = _dom.D3Store.gridcaptioncontent.innerHTML;
+    var head = getControlByName('trHeader_' + name).querySelectorAll('td');
+    var s = '<style>table.grid_result td[column_name=""]{display:none;}</style>';
+    s += '<table class="grid"><tr><td>Дата формирования: ' + dateFormat(new Date(), 'dd.mm.yyyy') + '</td></tr></table>';
+    s += '<table class="grid_result" border="1"><thead><tr><td colspan="' + (head.length - 1)
+        + '" style="font-size:12px;font-weight:bold;text-align:left;">"' + title + '"</td></tr><tr>';
+
+    for (var i = 0, len = head.length; i < len; i++) {
+        for (var col in COLS) {
+            if (getProperty(head[i], 'column_name', '') === COLS[col]['name']) {
+                s += '<td column_name=' + COLS[col]['name'] + '><div class="div_rotate" style="min-width: 20px;">'
+                    + COLS[col]['caption'] + '</div></td>';
+            }
+        }
+    }
+
+    s += '</tr></thead><tbody>';
+
+    for (var i = 0, len = rows.length; i < len; i++) {
+        // Устанавливаем атрибут checked для "radio" и "checkbox"
+        rows[i].querySelectorAll('input[type="radio"], input[type="checkbox"]').forEach(function(r) {
+            if (r.checked) {
+                r.setAttribute('checked', 'checked');
+            }
+        });
+
+        s += rows[i].outerHTML;
+    }
+
+    s += '</tbody></table>';
+    s += 'Всего записей: ' + parseInt(rows.length - 1); // Не учитываем строку заголовка
+    var crc_code = D3Api.crc32(page.form.name + "@" + name);
+
+    if (crc_code < 0) {
+        crc_code *= -1;
+    }
+
+    openWindow({
+        name: 'Reports/showReportHTML',
+        vars: {
+            html: s,
+            title: title,
+            REPORT_NAME: title,
+            report_code: crc_code
+        }
+    }, true);
+};
+
+function Grid_GetGridCaption(grid) {
+    return grid.querySelector('.GridCaption').innerText;
+};
+
+function Grid_SetGridCaption(grid, caption) {
+    grid.querySelector('.GridCaption').innerText = caption || '';
+};

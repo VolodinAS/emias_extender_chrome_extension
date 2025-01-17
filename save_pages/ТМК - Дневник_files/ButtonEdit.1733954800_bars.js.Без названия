@@ -1,0 +1,263 @@
+if(typeof(SYS_ControlActions['ButtonEdit']) == 'undefined'){ SYS_ControlActions['ButtonEdit']=new Array();}
+SYS_ControlActions['ButtonEdit']['value']={set:ButtonEdit_SetValue,get:ButtonEdit_GetValue};
+SYS_ControlActions['ButtonEdit']['caption']={set:ButtonEdit_SetCaption,get:ButtonEdit_GetCaption};
+SYS_ControlActions['ButtonEdit']['enabled']={set:ButtonEdit_SetEnabled,get:GetEnabled};
+SYS_ControlActions['ButtonEdit']['readonly']={set:ButtonEdit_SetReadonly,get:ButtonEdit_GetReadonly};
+SYS_ControlActions['ButtonEdit']['color']={set:ButtonEdit_SetColor,get:ButtonEdit_GetColor};
+SYS_ControlActions['ButtonEdit']['input']={get:function (_domObject){return buttonEdit_getInput(_domObject);}};
+SYS_ControlActions['ButtonEdit']['hint']={set:_setHint,get:_getHint};
+SYS_ControlActions['ButtonEdit']['visible']={set:ButtonEdit_SetVisible,get:ButtonEdit_GetVisible};
+
+/**
+ * @type {Array<{ dbCode: string, tooltip: string }>}
+ */
+var ButtonEditError = [
+    { dbCode: 'ORA-01403', tooltip: 'Не найдено ни одной записи по введенным для поиска данными' },
+    { dbCode: 'ORA-01422', tooltip: 'Найдено несколько записей с введенными данными для поиска, для уточнения выберите из словаря' }
+]
+
+//Получить компонент из кнопки
+/*function buttonEdit_getControl(_domObject){
+	var parent_ctrl=_domObject.parentNode;
+	var i=0;
+	while(parent_ctrl.tagName!='TABLE' && i<5){
+		parent_ctrl = parent_ctrl.parentNode;
+		i++;
+	}
+	return parent_ctrl;
+}*/
+function buttonEdit_getControl(_domObject){
+	var parent_ctrl=_domObject;
+	var i=0;
+	while(getProperty(parent_ctrl, 'cmptype', null)!='ButtonEdit' && i<5){
+		parent_ctrl = parent_ctrl.parentNode;
+		i++;
+	}
+	return parent_ctrl;
+}
+//Получить dom- объект input из основного компонента
+function buttonEdit_getInput(_domObject){
+	_domObject = buttonEdit_getControl(_domObject);
+
+	return getChildTag(_domObject, 'input', 0);
+	/*for(var i=0;i<_domObject.rows.length;i++){
+		for(var j=0;j<_domObject.rows[i].cells.length;j++){
+			if(_domObject.rows[i].cells[j].className == 'btne-input')
+				return getChildTag(_domObject.rows[i].cells[j], 'input', 0);
+		}
+	}*/
+
+	// return false;
+}
+//Получить dom- объект img из основного компонента
+function buttonEdit_getImg(_domObject){
+	if(_domObject.className == 'btne-button noselect'){
+		_domObject = buttonEdit_getControl(_domObject);
+	}
+	return getChildTag(_domObject, 'img', 0);
+}
+function ButtonEdit_EditClick(_EditDOM, _Event)
+{
+	if (_Event.ctrlKey)
+	{
+		var control = buttonEdit_getControl(_EditDOM);
+		if (hasProperty(control, 'name') && control.clone == undefined)
+		{
+			setValue(control.getAttribute('name'), '');
+			setCaption(control.getAttribute('name'), '');
+		}
+		else
+		{
+			_EditDOM.value = '';
+			ButtonEdit_SetValue(control, '');
+		}
+	}
+}
+
+function ButtonEdit_SetVisible(_domObject,_visible){
+	_domObject.style.display=(_visible)?'':'none';
+}
+function ButtonEdit_GetVisible(_domObject){
+	return _domObject.style.display!='none';
+}
+function ButtonEdit_SetValue(_domObject,_value)
+{
+	if (_value == null) _value = '';
+
+	if(_value == '' && _domObject.validCaption != undefined)
+	{
+		_domObject.validCaption = '';
+	}
+
+	if (!_value && _domObject.readonly_values === false)
+	{
+		ButtonEdit_SetReadonly(_domObject, false);
+		_domObject.readonly_values = false;
+	}
+	if(_domObject.readonly_values === undefined)
+	{
+		_domObject.readonly_values = ButtonEdit_GetReadonly(_domObject);
+	}
+	if(!_domObject.readonly_values)
+	{
+		ButtonEdit_SetReadonly(_domObject, _value.split(';').length > 1);
+		_domObject.readonly_values = false;
+	}
+	if(getProperty(_domObject,'multiedit') === 'true' && GetEnabled(_domObject)){
+		ButtonEdit_SetReadonly(_domObject, false);
+	}
+	if (hasProperty(_domObject,'unit') || hasProperty(_domObject,'extradict') || hasProperty(_domObject,'dirdict')){
+		_domObject.setAttribute('keyvalue', _value);
+	}else{
+		buttonEdit_getInput(_domObject).value = _value;
+	}
+}
+
+function ButtonEdit_GetValue(_domObject)
+{
+	var _value = null;
+	if (hasProperty(_domObject,'unit') || hasProperty(_domObject,'extradict') || hasProperty(_domObject,'dirdict'))
+		_value = getProperty(_domObject, 'keyvalue', '');
+	else
+		_value = buttonEdit_getInput(_domObject).value;
+	return _value;
+}
+
+function ButtonEdit_SetCaption(_domObject,_value)
+{
+	buttonEdit_getInput(_domObject).value =_value;
+}
+
+function ButtonEdit_GetCaption(_domObject)
+{
+	return buttonEdit_getInput(_domObject).value;
+}
+
+function getValueAfterSelect(_domObject)
+{
+	if (getVar('ModalResult',1) == 1) {
+		var name = getProperty(_domObject, 'name', null)+'';
+		var value=getVar('return_id',1);
+		setControlProperty(name, 'color', '',1);
+		setControlValue(_domObject, value,1);
+		setControlCaption(_domObject, getVar('return',1),1);
+		_setFocus(_domObject);//Срабатывает валидация
+		_domObject.validCaption = getVar('return',1);
+		UnitEdit_Valid(_domObject, true);
+		getPageByDom(_domObject).dispatchEvent('onchangeproperty'+name,_domObject,name,'value',value);
+		setVar('ModalResult', null, 1);
+	}
+}
+
+function ButtonEdit_onExit(_dom)
+{
+	if (_getControlProperty(buttonEdit_getControl(_dom), 'enabled'))ButtonEdit_Validate(buttonEdit_getControl(_dom));
+}
+
+function ButtonEdit_Validate(_dom)
+{
+	var _action_name = getProperty(_dom, 'validateaction', null);
+	var name = getProperty(_dom, 'name', null);
+    if(!_action_name || (ButtonEdit_GetCaption(_dom) !== '' && ButtonEdit_GetCaption(_dom) == _dom.validCaption)){
+        _setControlProperty(_dom, 'color', '');
+		UnitEdit_Valid(_dom, true);
+		return;
+    }
+    if (ButtonEdit_GetCaption(_dom).trim() !== '') {
+        _dom.validCaption = ButtonEdit_GetCaption(_dom);
+    } else {
+        ButtonEdit_SetCaption(_dom, '');
+    }
+	$$(_dom);
+	var _obj=buttonEdit_getInput(_dom);
+	if (_action_name && getControlCaption(_dom), _getControlProperty(_dom, 'enabled')){
+		executeAction(_action_name,
+			function (){
+				if (_getControlProperty(_dom, 'enabled')) {
+					_setControlProperty(_dom, 'color', '');
+					UnitEdit_Valid(_dom, true);
+				}
+
+				_dom.removeAttribute('title');
+			},function (err){
+				if (getProperty(_dom,'multiedit') === 'true' && err && err.sys_error_message.substr(0,9) === 'ORA-06502') {
+					alert('Ответ от сервера превышает допустимое количество символов.');
+				}
+                for (var i = 0 , il = ButtonEditError.length; i < il; ++i) {
+                    if (err.sys_error_message.substr(0,9) === ButtonEditError[i].dbCode) {
+                        _dom.setAttribute('title', ButtonEditError[i].tooltip);
+                        break;
+                    }
+                }
+				if (_getControlProperty(_dom, 'enabled')) {
+					UnitEdit_Valid(_dom, false);
+                    _setControlProperty(_dom, 'color', 'red');
+				}
+			},_obj);
+	}
+	else
+	{
+		if(_action_name && getControlCaption(_dom) == '')
+		{ //setControlValue(_dom,null);
+			setValue(name, null);
+            _setControlProperty(_dom, 'color', '');
+			UnitEdit_Valid(_dom, true);
+		}
+	}
+	_$$();
+}
+
+function ButtonEdit_SetEnabled(_dom, _state /*true/false типа boolean!!!*/)
+{
+	if (_getControlProperty(_dom, 'enabled') != _state)
+	{
+		var _text = buttonEdit_getInput(_dom);
+		var _button = buttonEdit_getImg(_dom);
+		var _css =  getProperty(_dom, 'cssstyle', null);
+		var _addClass =  getProperty(_dom, 'addclass', null);
+
+		//делаем активным
+		if (_state)
+		{
+			_text.removeAttribute('readonly');
+			_text.className = 'input-ctrl';
+			_button.className = _css+' '+_css+'-enable noselect';
+			_dom.setAttribute('enabled', 'true');
+			addClass(_dom,_addClass);
+			ButtonEdit_SetReadonly(_dom, _dom.readonly_old);
+		}//делаем неактивным
+		else
+		{
+			_dom.readonly_old = ButtonEdit_GetReadonly(_dom);
+			_text.setAttribute('readonly','true');
+			_text.className = 'input-ctrl disable';
+			_button.className = _css+' '+_css+'-disable noselect';
+			addClass(_dom,_addClass);
+			_dom.setAttribute('enabled', 'false');
+		}
+	}
+}
+
+function ButtonEdit_SetReadonly(_dom, _state/*boolean*/)
+{
+	_dom.readonly_values = undefined;
+	var _text = buttonEdit_getInput(_dom);
+	if (_state) _text.setAttribute('readonly','true');
+	else _text.removeAttribute('readonly');
+}
+
+function ButtonEdit_GetReadonly(_dom)
+{
+	if(hasProperty(buttonEdit_getInput(_dom), 'readonly')) return true;
+	else return false;
+}
+
+function ButtonEdit_SetColor(_dom, _color)
+{
+	buttonEdit_getInput(_dom).style.backgroundColor = _color;
+}
+
+function ButtonEdit_GetColor(_dom)
+{
+	return buttonEdit_getInput(_dom).style.backgroundColor;
+}

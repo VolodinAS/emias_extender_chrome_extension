@@ -1,0 +1,19 @@
+function onshowComposition(){
+	if(isExistsControlByName('compositionSettings')){
+			if(!empty(document.getElementById('roleComposition').value))
+				getControlByName('compositionSettings').style.display='';
+		}
+}
+function compositionSettings(composition_id){
+	if(empty(composition_id))return;
+	setVar('COMPOSITION_ID',composition_id);
+	 openWindow({name:'UniversalComposition/UniversalComposition',unit:'COMPOSITION', composition:'SETTINGS',show_buttons:false,parent_var:'COMPOSITION_ID'},
+	 	true,865,457);
+}
+function onCreateCompositionCont(_dom){
+    var isTree = D3Api.getDomBy(_dom,'.tree');
+    if(isTree){
+        /*TODO: хак для расширение компонента tree */
+        _dom.style.height = '100%';
+    }
+}

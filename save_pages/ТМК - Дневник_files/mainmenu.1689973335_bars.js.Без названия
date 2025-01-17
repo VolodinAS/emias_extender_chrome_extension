@@ -1,0 +1,6 @@
+//DMainMenu
+function printMenu() {
+	if (!getGlobalVar('checkLoginParam')) {
+		D3Api.showForm('System/mainmenu', document.getElementById('mainMenuForm'));
+	}
+}

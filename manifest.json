@@ -1,0 +1,34 @@
+{
+    "manifest_version": 3,
+    "name": "ЕМИАС Extender",
+    "short_name": "ЕМИАС Ext.",
+    "author": {
+        "email": "oncologist63@ya.ru"
+    },
+    "description": "Расширяет некоторые утраченные функции ЕМИАС",
+    "version": "1.0",
+    "icons": {
+        "16": "images/logo/logo-default-16х16.png",
+        "32": "images/logo/logo-default-32x32.png",
+        "48": "images/logo/logo-default-48х48.png",
+        "128": "images/logo/logo-default-128x128.png"
+    },
+    "action": {
+        "default_icon": {
+            "16": "images/logo/logo-default-16х16.png",
+            "32": "images/logo/logo-default-32x32.png"
+        },
+        "default_title": "ЕМИАС Ext.",
+        "default_popup": "pages/popup.html"
+    },
+    "content_scripts": [
+        {
+            "matches": [
+                "http://10.63.0.11/"
+            ],
+            "js": [
+                "core/content_script/index.js"
+            ]
+        }
+    ]
+}

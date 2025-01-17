@@ -1,0 +1,62 @@
+SYS_ControlActions['TextArea']=new Array();
+SYS_ControlActions['TextArea']['value']={set:TextArea_SetValue,get:TextArea_GetValue};
+SYS_ControlActions['TextArea']['color']={set:TextArea_SetColor,get:TextArea_GetColor};
+SYS_ControlActions['TextArea']['enabled']={set:TextArea_SetEnabled,get:GetEnabled};
+SYS_ControlActions['TextArea']['hint']={set:_setHint,get:_getHint};
+SYS_ControlActions['TextArea']['input']={get:function (_domObject){return getChildTag(_domObject,'textarea',0);}};
+
+function TextAreaCreate(_dom)
+{
+    var area = getChildTag(_dom,'textarea',0);
+    area.max_length = area.getAttribute('max_length');
+    if(!empty(area.max_length))
+        setInputLimit(area, area.max_length);
+}
+function TextArea_SetValue(_domObject,_value)
+{
+    _domObject = getChildTag(_domObject,'textarea',0);
+    if(!empty(_domObject.max_length))
+        _value = _value.substring(0, _domObject.max_length);
+	_domObject.innerHTML = _value;
+	_domObject.value = _value;
+}
+
+function TextArea_GetValue(_domObject)
+{
+    _domObject = getChildTag(_domObject,'textarea',0);
+	return _domObject.value;
+}
+
+function TextArea_SetColor(_dom, _color)
+{
+    _dom = getChildTag(_dom,'textarea',0);
+	_dom.style.backgroundColor = _color;
+}
+
+function TextArea_GetColor(_dom)
+{
+    _dom = getChildTag(_dom,'textarea',0);
+	return _dom.style.backgroundColor;
+}
+
+function TextArea_SetEnabled(_dom, _state /*true/false типа boolean!!!*/)
+{
+    var en = _getControlProperty(_dom, 'enabled');
+    var ta = getChildTag(_dom,'textarea',0);
+	if (en != _state)
+	{
+		//делаем активным
+		if (_state)
+		{
+		  ta.removeAttribute('readonly');
+		  ta.className = '';
+		  _dom.setAttribute('enabled', 'true');
+		}//делаем неактивным
+		else
+		{
+		  ta.setAttribute('readonly','true');
+		  ta.className = 'disable';
+		  _dom.setAttribute('enabled', 'false');
+		}
+	}
+}

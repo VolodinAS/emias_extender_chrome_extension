@@ -1,0 +1,72 @@
+SYS_ControlActions['CheckBox']=new Array();
+SYS_ControlActions['CheckBox']['value']={set:CheckBox_SetValue,get:CheckBox_GetValue};
+SYS_ControlActions['CheckBox']['caption']={set:CheckBox_SetCaption,get:CheckBox_GetCaption};
+SYS_ControlActions['CheckBox']['enabled']={set:CheckBox_SetEnabled,get:GetEnabled};
+SYS_ControlActions['CheckBox']['hint']={set:_setHint,get:_getHint};
+SYS_ControlActions['CheckBox']['checked']={set:CheckBox_SetChecked,get:CheckBox_GetChecked};
+SYS_ControlActions['CheckBox']['visible']={set:CheckBox_SetVisible,get:CheckBox_GetVisible};
+
+function CheckBox_GetChecked(_domObject){
+	return getChildTag(_domObject,'INPUT',0).checked;
+}
+function CheckBox_SetChecked(_domObject,_checked){
+	getChildTag(_domObject,'INPUT',0).checked=_checked;
+}
+function CheckBox_SetValue(_domObject,_value)
+{
+	var _check = getProperty(_domObject, 'valuechecked','');
+	// если чекбокс ставился в репитере и в прошлом клоне было значение подходящее для его активации,
+	// из-за особенностей репитера это же значение перейдет на следующий клон, даже если оно не подходит под valuechecked
+	if (_value == _check) {
+		getChildTag(_domObject,'input',0).checked = true;
+	} else {
+		getChildTag(_domObject,'input',0).checked = false;
+	}
+	
+	return;
+}
+
+function CheckBox_GetValue(_domObject)
+{
+	if (getChildTag(_domObject,'input',0).checked) return getProperty(_domObject, 'valuechecked','');
+	else return getProperty(_domObject, 'valueunchecked','');
+}
+
+function CheckBox_SetCaption(_domObject,_caption)
+{
+	getChildTag(_domObject,'span',0).innerHTML = _caption;
+}
+
+function CheckBox_GetCaption(_domObject)
+{
+	return getChildTag(_domObject,'span',0).innerHTML;
+}
+
+function CheckBox_SetEnabled(_dom, _state /*true/false типа boolean!!!*/)
+{
+	if (_getControlProperty(_dom, 'enabled') != _state)
+	{
+	  var _checkbox = _dom.getElementsByTagName('input');
+	  var _caption = _dom.getElementsByTagName('span');
+
+		//делаем активным
+		if (_state)
+		{
+		  _checkbox[0].removeAttribute('disabled');
+		  _caption[0].className = '';
+		  _dom.setAttribute('enabled', 'true');
+		}//делаем неактивным
+		else
+		{
+		  _checkbox[0].setAttribute('disabled','true');
+		  _caption[0].className = 'disable';
+		  _dom.setAttribute('enabled', 'false');
+		}
+	}  	
+}
+function CheckBox_SetVisible(_domObject,_visible){
+	_domObject.style.display=(_visible)?'':'none';
+}
+function CheckBox_GetVisible(_domObject){
+	return _domObject.style.display!='none';
+}

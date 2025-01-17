@@ -1,0 +1,65 @@
+function Expander_ToggleUpDown(_dom,_control)
+{
+    $$(_dom);
+    if (_control != '')
+        var elem = getControlByName(_control);
+    else
+        elem = _dom.previousSibling;
+    if (elem && elem.nodeName.toLowerCase() != '#text')
+    {
+        if(hasClass(_dom,'down'))
+        {
+            addClass(_dom,'up');
+            removeClass(_dom,'down');
+            elem.style.display = "none";
+        }else
+        {
+            addClass(_dom,'down');
+            removeClass(_dom,'up');
+            elem.style.display = "";
+        }
+    }
+    runCalcSize();
+    _$$();
+}
+function Expander_CheckOnCreate(_dom,_control)
+{
+    $$(_dom);
+    if (_control != '')
+        var elem = getControlByName(_control);
+    else
+        elem = _dom.previousSibling;
+    if (elem && elem.nodeName.toLowerCase() != '#text')
+    {
+        elem.style.display = hasClass(_dom,'down')?"":"none";
+    }
+    _$$();
+}
+function Expander_Toggle(name,state)
+{
+    var _dom = getControlByName(name);
+    if (!_dom)
+        return;
+     $$(_dom);
+    var _control = getProperty(_dom,'control','');
+    if (_control != '')
+        var elem = getControlByName(_control);
+    else
+        elem = _dom.previousSibling;
+    if (elem && elem.nodeName.toLowerCase() != '#text')
+    {
+        if(state == 'hide')
+        {
+            addClass(_dom,'up');
+            removeClass(_dom,'down');
+            elem.style.display = "none";
+        }else if(state == 'show')
+        {
+            addClass(_dom,'down');
+            removeClass(_dom,'up');
+            elem.style.display = "";
+        }
+    }
+    runCalcSize();
+    _$$();
+}

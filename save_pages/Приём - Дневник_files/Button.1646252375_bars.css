@@ -1,0 +1,209 @@
+table.btn-block,
+table.btn-disable,
+table.ctrl_disable
+{
+	cursor: pointer;
+	height:22px;
+    -moz-user-select:none;
+	user-select:none;
+	display:inline-table;
+	vertical-align:bottom;
+    outline: none;
+}
+table.btn-disable,
+table.ctrl_disable{
+    cursor: default;
+}
+table[class*="btn-"] tr.bt td.btnl,table[class*="btn-"] tr.bt td.btnc,table[class*="btn-"] tr.bt td.btnr{
+    border: 0 none;
+}
+td.btnl{
+	background:url('../images/button.png') no-repeat transparent;
+        background-position: left 0px;
+	height:22px;
+	width:3px;
+        min-width:3px;
+}
+table[class*="btn-"] td.btnc {
+	text-align: center;
+	background: url('../images/button.png') repeat-x transparent;
+    background-position: right -22px;
+	padding: 0 3px;
+	white-space: nowrap;
+    height: 22px;
+    line-height: 1px;
+}
+table[class*="btn-"] td.btnc.minwidth{
+    min-width: 74px;
+}
+td.btnr{
+	background:url('../images/button.png') no-repeat transparent;
+        background-position: right 0px;
+	height:22px;
+	width:3px;
+        min-width:3px;
+}
+table.btn-block:hover td.btnl
+{
+    background-position: left -44px;
+}
+table.btn-block:hover td.btnc
+{
+    background-position: right -66px;
+}
+table.btn-block:hover td.btnr
+{
+    background-position: right -44px;
+}
+table.btn-disable img.icon,
+table.ctrl_disable img.icon{
+    opacity: 0.5;
+    filter:alpha(opacity=50);
+}
+table.btn-disable td.btnl,
+table.ctrl_disable td.btnl
+{
+    background-position: left -88px;
+}
+table.btn-disable td.btnc,
+table.ctrl_disable td.btnc
+{
+    background-position: right -110px;
+    color: #555555;
+}
+table.btn-disable td.btnr,
+table.ctrl_disable td.btnr
+{
+    background-position: right -88px;
+}
+table.btn-block.focus td.btnl
+{
+    background-position: left -44px;
+}
+table.btn-block.focus td.btnc
+{
+    background-position: right -66px;
+}
+table.btn-block.focus td.btnr
+{
+    background-position: right -44px;
+}
+table[type="small"]
+{
+    width:23px;
+    min-width: 23px;
+}
+table[type="small"] img.icon{
+    margin: 0 -4px;
+}
+table[type="small"] td.btnc,table[type="small"] td.btnc.minwidth
+{
+    min-width: 0px;
+    width: 0px;
+    padding: 0px;
+}
+
+table[type="big"]
+{
+    height:36px;
+}
+table[type="big"] img.icon{
+    margin-left: -10px;
+}
+table[type="big"] td[class^="btn"]{
+    background-image:url('../images/button_l.png');
+}
+table[type="big"] td.btnl{
+        background-repeat: no-repeat;
+        background-position: left 0px;
+	width:23px;
+	height:36px;
+        min-width:23px;
+}
+table[type="big"] td.btnc{
+	text-align:center;
+        background-repeat: repeat-x;
+        background-position: right -35px;
+	padding: 0 2px;
+	white-space:nowrap;
+        height:36px;
+}
+table[type="big"] td.btnr{
+        background-repeat: no-repeat;
+        background-position: right 0px;
+	width:23px;
+	height:36px;
+        min-width:23px;
+}
+table[type="big"]:hover td.btnl
+{
+    background-position: left -71px;
+}
+table[type="big"]:hover td.btnc
+{
+        background-position: right -108px;
+}
+table[type="big"]:hover td.btnr
+{
+    background-position: right -71px;
+}
+table[type="big"].focus td.btnl
+{
+    background-position: left -71px;
+}
+table[type="big"].focus td.btnc
+{
+    background-position: right -108px;
+}
+table[type="big"].focus td.btnr
+{
+    background-position: right -71px;
+}
+table[type="big"].btn-disable td.btnl,
+table[type="big"].ctrl_disable td.btnl
+{
+    background-position: left -144px;
+}
+table[type="big"].btn-disable td.btnc,
+table[type="big"].ctrl_disable td.btnc
+{
+    background-position: right -180px;
+    color: #555555;
+}
+table[type="big"].btn-disable td.btnr,
+table[type="big"].ctrl_disable td.btnr
+{
+    background-position: right -144px;
+}
+
+table[type="big"].alert td[class^="btn"]
+{
+    background-image: url('../images/button_alert.png');
+}
+
+table[type="micro"]
+{
+    height:19px;
+    width: 20px;
+    background: url('../images/btn_micro.png') no-repeat center -1px;
+}
+table[type="micro"] td,table[type="micro"] td.btnc{
+	background: none;
+        height: 19px;
+        padding: 0;
+}
+table[type="micro"] td.btnc.minwidth{
+    min-width: 0px;
+    width: auto;
+}
+table[type="micro"].btn-block:hover{
+    background-position: center -21px;
+}
+table[type="micro"].btn-block.focus{
+    background-position: center -21px;
+}
+table[type="micro"].btn-disable,
+table[type="micro"].ctrl_disable
+{
+    background-position: center -41px;
+}

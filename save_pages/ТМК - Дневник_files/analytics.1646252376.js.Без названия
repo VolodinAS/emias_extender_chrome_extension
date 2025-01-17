@@ -1,0 +1,142 @@
+window.SYS_Analytics = (function(analytics_engines) {
+    var loaded_engines = {};
+
+    return {
+
+        // инициализация системы аналитики
+        initAnalyticEngine: function(name, options) {
+            // проверка, есть-ли такая система
+            if(typeof analytics_engines[name] !== 'object') {
+                return;
+            }
+            loaded_engines[name] = analytics_engines[name];
+            // проверка, есть-ли функция для инициализации
+            if(typeof loaded_engines[name]['init'] !== 'function') {
+                return;
+            }
+            // инициализация системы аналитики
+            try {
+                if(!loaded_engines[name]['init'](options)) {
+                    delete loaded_engines[name];
+                }
+            }
+            catch(err) {
+                console.error(err);
+                delete loaded_engines[name];
+            }
+        },
+
+        // когда пользователь авторизован, необходимо установить его логин
+        setUserLogin: function(user_login) {
+            this._user_login = user_login;
+        },
+
+        // отправка данных в систему аналитики
+        send: function(page /*DPage*/, params) {
+            // сбор данных
+            var page_data = {};
+
+            if(page instanceof DPage) {
+                page_data = this._parseDPageObject(page);
+            } else if(page instanceof DNullPage) {
+                page_data = this._parseDNullPageObject(page);
+            }
+
+            if(!page_data) {
+                return;
+            }
+
+            // отправка данных всем инициализированным системам
+            for(var engine_name in loaded_engines) {
+                if(!loaded_engines.hasOwnProperty(engine_name)) {
+                    continue;
+                }
+                if(typeof loaded_engines[engine_name]['send'] !== 'function') {
+                    continue;
+                }
+                try {
+                    loaded_engines[engine_name]['send'](page_data, params || {});
+                }
+                catch(err) {
+                    console.error(err);
+                }
+            }
+        },
+
+        _parseDPageObject: function(page) {
+
+            var page_title = '';
+            if(page.getContainer().getCaption) {
+                page_title = page.getContainer().getCaption();
+            } else {
+                page_title = page.form.helpUrl;
+            }
+
+            if(page.form.name == 'Reports/showReport') {
+                page_title += ': ' + page.form.formData._rep_code;
+            }
+
+            return {
+                'user_id': this._getUserLogin(),  // имя пользователя
+                'page_title': page_title || 'Без названия' // заголовок формы
+            };
+        },
+
+        _parseDNullPageObject: function(page) {
+            if(!page.d3Form) {
+                return false;
+            }
+
+            return {
+                'user_id': this._getUserLogin(),
+                'page_title': page.d3Form.getFormCaption()
+            };
+        },
+
+        _user_login: '',
+
+        _getUserLogin: function() {
+            return this._user_login || 'null';
+        }
+    };
+})({
+    /* Реализация для системы Piwik */
+    'Piwik': {
+
+        _piwik_instance: null,
+
+        _setPiwikInstance: function(piwik_instance) {
+            this._piwik_instance = piwik_instance;
+        },
+
+        getPiwikInstance: function() {
+            return this._piwik_instance;
+        },
+
+        // метод 'init' будет вызван после загрузки скрипта
+        init: function(options){
+            var piwik = window.Piwik;
+            if(!piwik) {
+                console.error('Система веб-аналитики Piwik не подключена или недоступна.');
+                return false;
+            }
+            if(!options['url'] || !options['idsite']) {
+                console.error('Система веб-аналитики Piwik не настроена.');
+                return false;
+            }
+            // получение инстанса Piwik'а
+            var piwik_instance = piwik.getTracker(options['url'] + "piwik.php", options['idsite']);
+            piwik_instance.trackPageView();
+
+            this._setPiwikInstance(piwik_instance);
+            return true;
+        },
+
+        // в page_info будут переданы данные о странице
+        send: function(page_info, params) {
+            this.getPiwikInstance().setUserId(page_info['user_id']);
+            this.getPiwikInstance().setDocumentTitle(page_info['page_title']);
+            this.getPiwikInstance().trackPageView();
+        }
+    }
+});

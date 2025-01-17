@@ -1,0 +1,523 @@
+SYS_ControlActions['SelectList']=new Array();
+SYS_ControlActions['SelectList']['value']={set:SelectList_SetValue,get:SelectList_GetValue};
+SYS_ControlActions['SelectList']['caption']={set:SelectList_SetCaption, get:SelectList_GetCaption};
+SYS_ControlActions['SelectList']['state']={set:SelectList_SetState,get:SelectList_GetState};
+SYS_ControlActions['SelectList']['immediatestate']={set:_SelectList_SetState};
+SYS_ControlActions['SelectList']['hint']={set:_setHint,get:_getHint};
+SYS_ControlActions['SelectList']['vars']={get:SelectList_GetVars};
+
+function SelectList_GetValue(_domObject) {
+    _arr = _domObject.sysCheckedItemsValue;
+    _result = _arr.join(';');
+    return _result;
+}
+
+function SelectList_SetValue(_domObject, _value) {
+     if (_value) {
+         _domObject.sysCheckedItemsValue = _value.split(';');
+         _domObject.sysCheckedItemsCaption = _value.split(';');
+     } else {
+         _domObject.sysCheckedItemsValue = Array();
+         _domObject.sysCheckedItemsCaption = Array();
+     }
+
+     SelectList_afterRefresh(_domObject);
+}
+
+function SelectList_GetCaption(_domObject) {
+    var _arr = _domObject.sysCheckedItemsCaption;
+    var _result = null;
+    _result = _arr.join(';');
+    return _result;
+}
+
+function SelectList_SetCaption(_domObject, _value) {
+    if (_value) {
+        _domObject.sysCheckedItemsCaption = _value.split(';');
+    } else {
+        _domObject.sysCheckedItemsCaption = Array();
+    }
+
+    SelectList_afterRefresh(_domObject);
+}
+function SelectList_GetState(_domObject) {
+    return getProperty(_domObject, 'state', '');
+}
+
+/**
+ *
+ * @param _domObject
+ * @param _state - 0 1 2
+ * @constructor
+ */
+function SelectList_SetState(_domObject, _state) {
+    var _img = _domObject.getElementsByTagName('img')[0];
+
+    if (_state == 0) {
+        _img.className = 'select-list unchecked';
+
+    } else {
+        if (_state == 1) {
+            _img.className = 'select-list checked';
+        } else {
+            _img.className = 'select-list grayed';
+        }
+    }
+    _domObject.setAttribute('state', _state);
+}
+
+/**
+ *
+ * @param _domObject
+ * @param _state - 0 1
+ * @private
+ */
+function _SelectList_SetState(_domObject, _state) {
+
+    if (_state == 0) {
+        //! запустить ф-цию проверки своего статуса у видимых items
+        SelectList_unselectAllItem(_domObject);
+    } else {
+        if (_state == 1) {
+            //! запустить ф-цию проверки своего статуса у видимых items
+            SelectList_selectAllItem(_domObject);
+        }
+    }
+}
+
+function SelectList_setRigthState(_domObject) {
+    if (_domObject.sysCheckedItemsValue.length == _domObject.sysAllItemsCnt && _domObject.sysAllItemsCnt != 0) {
+        _setControlProperty(_domObject, 'state', 1);
+    } else {
+        if (_domObject.sysCheckedItemsValue.length == 0) {
+            _setControlProperty(_domObject, 'state', 0);
+        } else {
+            _setControlProperty(_domObject, 'state', 2);
+        }
+    }
+}
+
+function SelectList_AddValue(_domObject, _value, _caption, _selectlist_item) {
+    var _index = SelectList_CheckItemValue(_domObject, _value);
+    if (_index < 0) {
+        var cnt = _domObject.sysCheckedItemsValue.push(_value),
+            vars = _domObject.vars;
+
+        _domObject.sysCheckedItemsCaption[cnt - 1] = _caption;
+
+        if (vars) {
+            var _data = _selectlist_item.closest('tr').clone.data;
+            SelectList_addVars(_data, _domObject);
+        }
+
+        SelectList_setRigthState(_domObject);
+    } else {
+        _domObject.sysCheckedItemsCaption[_index] = _caption;
+    }
+}
+
+function SelectList_DelValue(_domObject, _value) {
+    var _index = SelectList_CheckItemValue(_domObject, _value);
+    if (_index < 0) {
+        return;
+    }
+    _domObject.sysCheckedItemsValue.splice(_index, 1);
+    _domObject.sysCheckedItemsCaption.splice(_index, 1);
+    _domObject.vars && SelectList_delVars(_index, _domObject);
+    SelectList_setRigthState(_domObject);
+}
+
+function SelectList_onCreate(_domObject) {
+    /*массив отмеченных строк*/
+    _domObject.sysCheckedItemsValue = new Array();
+    _domObject.sysCheckedItemsCaption = new Array();
+    /*количество всех строк*/
+    _domObject.sysAllItemsCnt = 0;// заполнять при каждом обновлении датасета
+    _domObject.sysDisabledValues = [];
+    /*массив всех видимых на форме items*/
+    var _dsname = getProperty(_domObject, 'dataset'),
+        obj = getPage().form;
+    obj.SelectLists[obj.SelectLists.length] = {
+        DS: _dsname,
+        NAME: getProperty(_domObject, 'name')
+    };
+    SelectList_initVars(_domObject);
+}
+
+function SelectList_setAllItemsCnt(_domObject) {
+    var _dsname = getProperty(_domObject, 'dataset');
+    var ds = getDataSet(_dsname);
+    if (ds.data && ds.data.info) {
+        _domObject.sysAllItemsCnt = ds.data.info.rowcount;
+        SelectList_setRigthState(_domObject);
+    } else {
+        function fBody(_ds_count_rows) {
+            _domObject.sysAllItemsCnt = _ds_count_rows;
+            SelectList_setRigthState(_domObject);
+        }
+
+        requestDataSetCount(_dsname, fBody, _domObject);
+    }
+}
+
+function SelectList_setAllItemsValue(_domObject) {
+    var _dsname = getProperty(_domObject, 'dataset'),
+        _flname = getProperty(_domObject, 'field'),
+        _vars = getProperty(_domObject, 'vars');
+
+    var _data = {
+        mode: 'Field',
+        Field: _vars ? (_flname + ',' + _vars) : _flname
+    };
+
+    requestDataSetData(
+        _dsname,
+        _data,
+        SelectList_dsResultParse,
+        function() {
+            alert('Данные не были получены.')
+        },
+        _domObject,
+        true,
+        skip
+    );
+}
+
+function SelectList_GetVars(_domObject) {
+    return _domObject.vars;
+}
+
+function SelectList_initVars(_selectlist) {
+    var varsStr = getProperty(_selectlist, 'vars'),
+        varsArr;
+    if (varsStr && getProperty(_selectlist, 'statgrid') !== 'true') {
+        varsArr = varsStr.split(',');
+        _selectlist.vars = {};
+        for (var j = 0, l = varsArr.length; j < l; ++j) {
+            _selectlist.vars[varsArr[j]] = [];
+        }
+        return true;
+    }
+    return false;
+}
+
+function SelectList_addVars(_values, _selectlist) {
+    var varsObj = _selectlist.vars;
+
+    for (var varName in varsObj) {
+        if (varsObj.hasOwnProperty(varName)) {
+            varsObj[varName].push(_values[varName]);
+        }
+    }
+}
+
+function SelectList_delVars(_index, _selectlist) {
+    var varsObj = _selectlist.vars;
+
+    for (var varName in varsObj) {
+        if (varsObj.hasOwnProperty(varName)) {
+            varsObj[varName].splice(_index, 1);
+        }
+    }
+}
+
+function SelectList_dsResultParse(_arr) {
+    var _domObject = this;
+    var _flname = getProperty(_domObject, 'field'),
+        _hasVars = SelectList_initVars(_domObject);
+
+    _flname = _flname.split(',');
+    _domObject.sysCheckedItemsValue = [];
+    _domObject.sysCheckedItemsCaption = [];
+    for (var i = 0, c = _arr.length; i < c; i++) {
+        if (!~_domObject.sysDisabledValues.indexOf(_arr[i][_flname[0]])) {
+            _domObject.sysCheckedItemsValue.push(_arr[i][_flname[0]]);
+            _domObject.sysCheckedItemsCaption.push(_arr[i][_flname[1] || _flname[0]]);
+            _hasVars && SelectList_addVars(_arr[i], _domObject);
+        }
+    }
+
+    SelectList_checkAllItem(_domObject);
+    _arr = new Array();
+}
+
+function SelectList_afterRefresh(_domObject) {
+    SelectList_setAllItemsCnt(_domObject);
+    SelectList_checkAllItem(_domObject, true);
+}
+
+function SelectList_CheckItemValue(_domObject, _value) {
+    return Array.indexOf(_domObject.sysCheckedItemsValue, _value);
+}
+
+ /*ф-ция пробегает по всем Item и выставляет галочки в соответствующее положение */
+function SelectList_checkAllItem(_domObject,nolist) {
+    var _conname = getProperty(_domObject, 'container'),
+        _name = getProperty(_domObject, 'name'),
+        _items = [];
+
+    _items = getControlByName(_conname).querySelectorAll('[cmptype="SelectListItem"]');
+
+    var _state = null;
+    for (var i = 0; i < _items.length; i++) {
+        if (SelectList_CheckItemValue(_domObject, _getControlProperty(_items[i], 'value')) >= 0) {
+            _state = 1;
+        } else {
+            _state = 0;
+        }
+
+        if (SelectListItem_GetEnabled(_items[i])) {
+            _items[i].checked = !!_state;
+            _items[i].setAttribute('state', _state);
+        }
+    }
+
+    // Проверка, если убран selectList в профиле, то обнуляем значения в selectList
+    if (_items.length === 0 && nolist) {
+        SelectList_unselectAllItem(_domObject, 'checkAllItem');
+    }
+
+    SelectList_setRigthState(_domObject);
+    if (nolist !== true) {
+        getPageByDom(_domObject).dispatchEvent('onCheckAllproperty' + _name, _domObject, _name, 'state', {value: getProperty(_domObject, 'state', '')});
+    }
+}
+
+function SelectList_uncheckItems(_selectListName, skip) {
+    var _domObject = getControlByName(_selectListName, skip);
+    var _conname = getProperty(_domObject, 'container');
+
+    var _name = getProperty(_domObject, 'name');
+    var _items = getCloneObjectsByRepeaterName(_conname + '_Row', _name + '_Item', skip);
+    var _state = null;
+    for (var i in _items) {
+        if (!_items.hasOwnProperty(i)) {
+            continue;
+        }
+        _state = 0;
+        _SelectListItem_SetState(_items[i], _state, skip);
+    }
+
+    SelectList_setRigthState(_domObject);
+
+    if (!empty(getValue(_selectListName))) {
+        setValue(_selectListName, '');
+    }
+}
+
+function SelectList_selectAllItem(_domObject) {
+    SelectList_setAllItemsValue(_domObject);
+
+}
+
+/**
+ * Функционал очищение значений selectList
+ * @param _domObject - dom selectList
+ * @param callPath - Путь откуда вызван функционал, избежать повторного вызова
+ * @constructor
+ */
+function SelectList_unselectAllItem(_domObject, callPath) {
+    _domObject.sysCheckedItemsValue = new Array();
+    _domObject.sysCheckedItemsCaption = new Array();
+    if (callPath !== 'checkAllItem') {
+        SelectList_checkAllItem(_domObject);
+    }
+    SelectList_initVars(_domObject);
+}
+
+function SelectList_onClick(_domObject) {
+    if (_getControlProperty(_domObject, 'state') > 0) {
+        SelectList_unselectAllItem(_domObject);
+    } else {
+        SelectList_selectAllItem(_domObject);
+    }
+}
+
+SYS_ControlActions['SelectListItem']=new Array();
+SYS_ControlActions['SelectListItem']['value']={set:SelectListItem_SetValue,get:SelectListItem_GetValue};
+SYS_ControlActions['SelectListItem']['caption']={set:SelectListItem_SetCaption,get:SelectListItem_GetCaption};
+SYS_ControlActions['SelectListItem']['state']={set:SelectListItem_SetState,get:SelectListItem_GetState};
+SYS_ControlActions['SelectListItem']['enabled']={set:SelectListItem_SetEnabled,get:SelectListItem_GetEnabled};
+
+function SelectListItem_SetValue(_domObject,_value) {
+    _domObject.value = _value;
+}
+
+function SelectListItem_GetValue(_domObject) {
+    return _domObject.value;
+}
+
+function SelectListItem_SetCaption(_domObject,_value) {
+    _domObject.setAttribute('caption', _value);
+}
+
+function SelectListItem_GetCaption(_domObject) {
+    return getProperty(_domObject, 'caption', '');
+}
+
+function SelectList_SetChildState(DOM, state, skip) {
+    var selectlistName = getProperty(DOM, 'selectlist');
+    var selectlist = getControlByName(selectlistName, skip);
+    var container = getProperty(selectlist, 'container');
+    var control = getControlByName(container, skip);
+    if (getProperty(control, 'cmptype') === 'Tree'
+        && getProperty(control, 'select_childs') === 'true') {
+        var row = DOM.closest('[cmptype="TreeRow"]');
+        var ids = getValue(selectlistName, skip).split(';');
+
+        if (getProperty(row, 'has_childs')) {
+            checkChild(row);
+        }
+
+        if (getProperty(row, 'parentvalue')) {
+            checkParent(row);
+        }
+
+        function checkChild(row) {
+            var key = getProperty(row, 'keyvalue');
+            var childs = control.querySelectorAll('[parentvalue="' + key + '"]');
+
+            childs.forEach(function(child) {
+                var id = _getControlProperty(child, 'value');
+                var index = ids.indexOf(id);
+                if (state) {
+                    if (index === -1) {
+                        ids.push(id);
+                    }
+                } else {
+                    if (index !== -1) {
+                        ids.splice(index, 1);
+                    }
+                }
+
+                if (getProperty(child, 'has_childs')) {
+                    checkChild(child);
+                }
+            });
+        }
+
+        function checkParent(row) {
+            var key = getProperty(row, 'parentvalue');
+            var childs = control.querySelectorAll('[parentvalue="' + key + '"]');
+            var selectRow = true;
+
+            for (var i = 0; i < childs.length; i++) {
+                var id = _getControlProperty(childs[i], 'value');
+                if (ids.indexOf(id) === -1) {
+                    selectRow = false;
+                    break;
+                }
+            }
+
+            var index = ids.indexOf(key);
+            if (selectRow && state) {
+                if (index === -1) {
+                    ids.push(key);
+                }
+            } else {
+                if (index !== -1) {
+                    ids.splice(index, 1);
+                }
+            }
+
+            var parentRow = control.querySelector('[keyvalue="' + key + '"]');
+            if (getProperty(parentRow, 'parentvalue')) {
+                checkParent(parentRow);
+            }
+        }
+
+        setValue(selectlistName, ids.join(';'));
+    }
+}
+
+/**
+ *
+ * @param _domObject
+ * @param _state - принимает значение  0 и 1
+ * @param skip
+ * @constructor
+ */
+function SelectListItem_SetState(_domObject, _state, skip) {
+    if (SelectListItem_GetEnabled(_domObject)) {
+        if (_state != _getControlProperty(_domObject, 'state')) {
+            var _value = _getControlProperty(_domObject, 'value'),
+                _caption = '',
+                _selectlist_name = getProperty(_domObject, 'selectlist', ''),
+                _selectlist = getControlByName(_selectlist_name, skip);
+
+            if (_state == 0) {
+                SelectList_DelValue(_selectlist, _value);
+            } else {
+                _caption = _getControlProperty(_domObject, 'caption');
+                SelectList_AddValue(_selectlist, _value, _caption, _domObject);
+            }
+
+            _domObject.setAttribute('state', _state);
+        }
+    }
+}
+
+function SelectListItem_onClick(_domObject, _check) {
+    var state = 0
+    if (_check) {
+        state = 1;
+    }
+
+    SelectListItem_SetState(_domObject, state);
+    SelectList_SetChildState(_domObject, state);
+}
+
+function SelectListItem_onMouseDown(event) {
+    var target = event.srcElement || event.target;
+    if (target.setCapture) target.setCapture(true);
+    stopEvent(event);
+}
+
+/**
+ *
+ * @param _domObject
+ * @param _state -  принимает значение  0 и 1
+ * @param skip
+ * @private
+ */
+function _SelectListItem_SetState(_domObject, _state, skip) {
+    if (SelectListItem_GetEnabled(_domObject)) {
+        _domObject.checked = !!+_state;
+        SelectListItem_SetState(_domObject, _state, skip);
+    }
+}
+
+function SelectListItem_GetState(_domObject) {
+    return getProperty(_domObject, 'state');
+}
+
+function SelectListItem_onCreate(_domObject) {
+    /*_selectlist_name=getProperty(_domObject, 'selectlist', '');
+    _selectlist = getControlByName(_selectlist_name);
+
+    _selectlist.sysAllItems.push(_domObject);*/
+}
+
+function SelectListItem_SetEnabled(DOM, state, skip) {
+    var currentState = SelectListItem_GetEnabled(DOM),
+        value = _getControlProperty(DOM, 'value'),
+        selectList = getControlByName(getProperty(DOM, 'selectlist'), skip),
+        disabledValues = selectList.sysDisabledValues;
+    if (state != currentState) {
+        if (state) {
+            var index = disabledValues.indexOf(value);
+            DOM.removeAttribute('disabled');
+            if (~index) {
+                disabledValues.splice(index, 1);
+            }
+        } else {
+            _SelectListItem_SetState(DOM, state, skip);
+            DOM.setAttribute('disabled', 'true');
+            disabledValues.push(value);
+        }
+    }
+}
+
+function SelectListItem_GetEnabled(DOM) {
+    return DOM.getAttribute('disabled') != 'true';
+}

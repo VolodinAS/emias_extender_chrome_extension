@@ -1,0 +1,30 @@
+.UserInfo .td_user {
+	text-align: left;
+	font-weight: bold;
+}
+.UserInfo .td_user2 {
+    text-align: left;
+    font-weight: bold;
+}
+.UserInfo .td_name {
+	text-align: right;
+	padding: 0 2px;
+}
+.UserInfo select.themes {
+	font-size: 11px;
+	border: none;
+	background: transparent;
+	font-weight: bold;
+	outline: none;
+}
+a.tooltip span {
+    display: none;
+    width: 130px;
+}
+a.tooltip:hover span {
+    display: inline-block;
+    position: absolute;
+    border: 1px solid rgb(215, 214, 214);
+    color: #353535;
+    background-color: #fff;
+}

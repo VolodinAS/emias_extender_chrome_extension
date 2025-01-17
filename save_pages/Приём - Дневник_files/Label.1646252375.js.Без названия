@@ -1,0 +1,125 @@
+SYS_ControlActions['Label']=new Array();
+SYS_ControlActions['Label']['caption']={set:Label_SetCaption,get:Label_GetCaption};
+SYS_ControlActions['Label']['enabled']={set:Label_SetEnabled,get:GetEnabled};
+SYS_ControlActions['Label']['hint']={set:_setHint,get:_getHint};
+SYS_ControlActions['Label']['visible']={set:Label_SetVisible,get:Label_GetVisible};
+SYS_ControlActions['Label']['value']={set:Label_SetValue,get:Label_GetValue};
+
+function Label_SetCaption(_domObject,_value)
+{
+	_value = (_value === undefined)?'':_value;
+        if (getProperty(_domObject,'specialchars','true') == 'true' && getProperty(_domObject,'formated',false))
+        {
+            var t = document.createElement('span');
+            t.appendChild(document.createTextNode(_value));
+
+            _value = t.innerHTML;
+            t = null;
+        }
+        if (_domObject._replaceObj || (hasProperty(_domObject,'match') && hasProperty(_domObject,'replace')))
+        {
+            if (!_domObject._replaceObj)
+                _domObject._replaceObj = {rexp: new RegExp(quickGetProperty(_domObject, 'match'),getProperty(_domObject,'modif','')), repl: quickGetProperty(_domObject, 'replace')};
+            _value = _value.replace(_domObject._replaceObj.rexp,_domObject._replaceObj.repl);
+            if (!isNaN(_value))
+                _value = parseFloat(_value);
+        }
+        //Кешируем
+        _domObject['label_before_caption'] = (_domObject['label_before_caption'] != null)?_domObject['label_before_caption']:getProperty(_domObject,'before_caption','');
+        _domObject['label_after_caption'] = (_domObject['label_after_caption'] != null)?_domObject['label_after_caption']:getProperty(_domObject,'after_caption','');
+        if (!_domObject['label_note'] && hasProperty(_domObject,'note'))
+        {
+            _domObject['label_note'] = getChildTag(_domObject, 'span', 0);
+        }
+        var new_value = _value;
+        if (!isNaN(_value))
+            new_value = String(_value);
+        else 
+            if (typeof(_value) != 'string') new_value = '';
+
+        var set_val = new_value;
+        if (getProperty(_domObject,'formated',false) && new_value)
+        {
+            set_val = new_value.replace(/\r\n|\r|\n/g,'<br/>');
+            if (!hasProperty(_domObject,'nonbsp'))
+            {
+                var m = set_val.match(/[ ]{2,}/g);
+                if (m && m.length > 0)
+                {
+                    var mnbsp = m;
+
+                    mnbsp = mnbsp.join(':').replace(/[ ]/g,"&nbsp;").split(":");
+                    for (var p = 0; p < m.length; p++)
+                    {
+                        set_val = set_val.replace(m[p],mnbsp[p]);
+                    }
+                }
+            }
+        }
+        set_val = _domObject['label_before_caption']+set_val+_domObject['label_after_caption'];
+
+        _domObject.innerHTML=(new_value)?set_val.replace(/&amp;/g, '&'):new_value='';
+
+        if (_domObject['label_note'])
+        {
+           if (set_val == '')
+               _domObject.innerHTML='&nbsp;';
+           _domObject.appendChild(_domObject['label_note']);
+        }
+        if (hasProperty(_domObject,'hide_empty'))
+        {
+            Label_SetVisible(_domObject,new_value!='');
+        }
+        _domObject['label_caption'] = new_value;
+}
+
+function Label_GetCaption(_domObject)
+{
+    if (_domObject['label_caption'])
+    {
+        return _domObject['label_caption'];
+    }
+    return _domObject.innerHTML;
+}
+
+function Label_SetEnabled(_dom, _state /*true/false типа boolean!!!*/)
+{
+	if (_getControlProperty(_dom, 'enabled') != _state)
+	{
+		//делаем активным
+		if (_state)
+		{
+		  _dom.className = '';
+		  _dom.setAttribute('enabled', 'true');
+		  
+		}//делаем неактивным
+		else
+		{
+		  _dom.className = 'disable';
+		  _dom.setAttribute('enabled', 'false');
+		}
+	}
+}
+
+function Label_SetVisible(_domObject, _value)
+{
+	if (_value != true && _value != 1) _value = false;
+	
+	_domObject.style.display = _value != false ? '' : 'none';
+}
+
+function Label_GetVisible(_domObject)
+{
+	return _domObject.style.display != 'none';
+}
+
+function Label_SetValue(_domObject, _value)
+{
+    _domObject.setAttribute('keyvalue', _value);
+}
+
+function Label_GetValue(_domObject)
+{
+    _value = getProperty(_domObject, 'keyvalue', '');
+    return _value;
+}

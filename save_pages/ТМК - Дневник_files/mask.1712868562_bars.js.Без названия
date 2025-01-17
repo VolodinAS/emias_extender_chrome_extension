@@ -1,0 +1,1338 @@
+function DMaskInspector(domObject) {
+    var checkArray = function(arr) {
+        if (arr.length === 1 && arr[0] === '') {
+            return [];
+        }
+
+        return arr;
+    };
+
+    var page = getPageByDom(domObject);
+    var name = getProperty(domObject, 'name', '');
+    var onSuccess = getProperty(domObject, 'onsuccess', '');
+    var onError = getProperty(domObject, 'onerror', '');
+    var separator = getProperty(domObject, 'separator', ';');
+    var controls = checkArray(getProperty(domObject, 'controls', '').split(separator));
+    var effectControls = checkArray(getProperty(domObject, 'effectControls', '').split(separator));
+    var clones = checkArray(getProperty(domObject, 'clones', '').split(separator));
+    domObject.DMaskInspector = this;
+
+    var onEvent = function(maskObject) {
+        var index;
+        var SYS_MaskInspector_count = 0;
+
+        for (index = 0; index < effectControls.length; index++) {
+            SYS_MaskInspector_count += page.memory.SYS_MaskInspector[effectControls[index]];
+        }
+        var correctMaskComponents = false;
+
+        if (maskObject) {
+            if (page.memory.SYS_MaskComponents.length === 0) {
+                correctMaskComponents = true;
+            }
+        }
+
+        if (SYS_MaskInspector_count > 0 && !correctMaskComponents) {
+            for (index = 0; index < effectControls.length; index++) {
+                setControlProperty(effectControls[index], 'enabled', false);
+            }
+
+            eval('(function(){' + onError + '}).call(domObject);');
+        } else {
+            for (index = 0; index < effectControls.length; index++) {
+                setControlProperty(effectControls[index], 'enabled', true);
+            }
+
+            eval('(function(){' + onSuccess + '}).call(domObject);');
+        }
+    };
+
+    var getOptions = function(control) {
+        return {
+            template: getProperty(control, 'templateMask', ''),
+            stripMask: getProperty(control, 'stripMask', 'false') !== 'false',
+            regular: new RegExp(getProperty(control, 'regularMask', '')),
+            templateReg: (getProperty(control, 'templateRegular', '')) ? new RegExp(getProperty(control, 'templateRegular', '')) : '',
+            original: getProperty(control, 'originalMask', ''),
+            empty: getProperty(control, 'emptyMask','false') !== 'false',
+            firstPos: getProperty(control, 'noFirstPosMask', 'false') === 'false',
+            fillFirst: getProperty(control, 'fillFirstMask', 'false') !== 'false',
+            // Указывать когда используется регулярка и в поле разрешен символ "_", н-р, когда regularMask="^[a-zA-Z0-9_]$"
+            noClearChar_: getProperty(control, 'noClearChar_', 'false') !== 'false'
+        };
+    };
+
+    var onChangePropertyEvent = function(control, controlName, propertyName, propertyValue) {
+        if (propertyName === 'value') {
+            var maskObject = control.MaskObject;
+
+            if (typeof (maskObject) !== 'undefined') {
+                if (!maskObject.checkValue(propertyValue)) {
+                    maskObject.onError(propertyValue, control);
+                } else {
+                    maskObject.onSuccess(propertyValue, control);
+                }
+            }
+        }
+    };
+
+    var removeMask = function(controlName, control) {
+        if (control && typeof (control.MaskObject) !== 'undefined') {
+            page.removeListener('onchangeproperty' + controlName, onChangePropertyEvent, this);
+            var maskObject = control.MaskObject;
+
+            if (maskObject.invalid) {
+                this.onSuccessEvent(maskObject);
+            }
+
+            if (typeof maskObject.remove !== 'undefined') {
+                maskObject.remove();
+            }
+
+            control.MaskObject = undefined;
+            delete control.MaskObject;
+        }
+    };
+
+    var createMask = function(controlName, control) {
+        if (control && typeof (control.MaskObject) === 'undefined') {
+            switch (getProperty(control, 'typemask', 'unknown')) {
+                case 'time':
+                    control.MaskObject = new DMaskObject(control, {
+                        template: '99:99',
+                        stripMask: false,
+                        regular: new RegExp('^(([0-1][0-9])|(2[0-3]))\:[0-5][0-9]$'),
+                        templateReg: '',
+                        original: '00:00',
+                        empty: getProperty(control, 'emptyMask', 'false') !== 'false',
+                        fillFirst: getProperty(control, 'fillFirstMask', 'false') !== 'false'
+                    }, this);
+                    break;
+                case 'timefull':
+                    control.MaskObject = new DMaskObject(control, {
+                        template: '99:99:99',
+                        stripMask: false,
+                        regular: new RegExp('^(([0-1][0-9])|(2[0-3]))\:[0-5][0-9]\:[0-5][0-9]$'),
+                        templateReg: '',
+                        original: '00:00:00',
+                        empty: getProperty(control, 'emptyMask', 'false') !== 'false',
+                        fillFirst: getProperty(control, 'fillFirstMask', 'false') !== 'false'
+                    }, this);
+                    break;
+                case 'date':
+                    control.MaskObject = new DMaskObject(control, {
+                        template: '99.99.9999',
+                        stripMask: false,
+                        regular: new RegExp('^(((0[1-9]|[12]\\d|3[01])\.(0[13578]|1[02])\.((18|[2-9]\\d)\\d{2}))|((0[1-9]|[12]\\d|30)\.(0[13456789]|1[012])\.((18|[2-9]\\d)\\d{2}))|((0[1-9]|1\\d|2[0-8])\.02\.((18|[2-9]\\d)\\d{2}))|(29\.02\.((1[6-9]|[2-9]\\d)(0[48]|[2468][048]|[13579][26])|((16|[2468][048]|[3579][26])00)))|((0[1-9]|[12]\\d|3[01])\.(0[13578]|1[02])\.((19|[2-9]\\d)\\d{2}))|((0[1-9]|[12]\\d|30)\.(0[13456789]|1[012])\.((19|[2-9]\\d)\\d{2}))|((0[1-9]|1\\d|2[0-8])\.02\.((19|[2-9]\\d)\\d{2}))|(29\.02\.((1[6-9]|[2-9]\\d)(0[48]|[2468][048]|[13579][26])|((16|[2468][048]|[3579][26])00))))$'),
+                        templateReg: '',
+                        // Проверка через функцию
+                        checkFunc: function(value) {
+                            var d = String(value).split('.');
+
+                            // Точки может быть только две
+                            if (d.length > 3) {
+                                return false;
+                            }
+
+                            // Число не меньше 31, месяц не меньше 12
+                            if (d[0] > 31 || d[1] > 12) {
+                                return false;
+                            }
+
+                            for (var i = 0; i < d.length; i++) {
+                                if (!(/^\d+$/).test(d[i])) {
+                                    return false;
+                                }
+                            }
+
+                            return true;
+                        },
+                        original: '00.00.0000',
+                        empty: getProperty(control, 'emptyMask', 'false') !== 'false',
+                        fillFirst: getProperty(control, 'fillFirstMask', 'false') !== 'false'
+                    }, this);
+                    break;
+                case 'datetime':
+                    control.MaskObject = new DMaskObject(control, {
+                        template: '99.99.9999 99:99',
+                        stripMask: false,
+                        regular: new RegExp('^(((0[1-9]|[12]\\d|3[01])\.(0[13578]|1[02])\.((19|[2-9]\\d)\\d{2}))|((0[1-9]|[12]\\d|30)\.(0[13456789]|1[012])\.((19|[2-9]\\d)\\d{2}))|((0[1-9]|1\\d|2[0-8])\.02\.((19|[2-9]\\d)\\d{2}))|(29\.02\.((1[6-9]|[2-9]\\d)(0[48]|[2468][048]|[13579][26])|((16|[2468][048]|[3579][26])00)))) (([0-1][0-9])|(2[0-3]))\:[0-5][0-9]$'),
+                        templateReg: '',
+                        // Проверка через функцию
+                        checkFunc: function(value) {
+                            var dt = String(value).split(' ');
+                            var d = String(dt[0]).split('.').concat(String(dt[1]).split(':'));
+
+                            if (d[0] > 31 || d[1] > 12 || d[3] > 23 || d[4] > 59) {
+                                return false;
+                            }
+
+                            for (i = 0; i < d.length; i++) {
+                                if (isNaN(Number(d[i]))) {
+                                    return false;
+                                }
+                            }
+
+                            return true;
+                        },
+                        original: '00.00.0000 00:00',
+                        empty: getProperty(control, 'emptyMask', 'false') !== 'false',
+                        fillFirst: getProperty(control, 'fillFirstMask', 'false') !== 'false'
+                    }, this);
+                    break;
+                case 'number':
+                    control.MaskObject = new DMaskObject(control, {
+                        template: '',
+                        stripMask: false,
+                        regular: new RegExp('^[0-9]*$'),
+                        templateReg: new RegExp('^\\d+$'),
+                        original: '',
+                        empty: getProperty(control, 'emptyMask', 'false') !== 'false',
+                        fillFirst: getProperty(control, 'fillFirstMask', 'false') !== 'false'
+                    }, this);
+                    break;
+                case 'currency':
+                    control.MaskObject = new DMaskObject(control, {
+                        template: '',
+                        stripMask: false,
+                        regular: new RegExp('^\\d+(,\\d{1,2})?$'),
+                        templateReg: new RegExp('^\\d+(((,|\\.)\\d{1,2})|(,|\\.))?$'),
+                        original: '',
+                        empty: getProperty(control, 'emptyMask', 'false') !== 'false',
+                        fillFirst: getProperty(control, 'fillFirstMask', 'false') !== 'false'
+                    }, this);
+                    break;
+                case 'email':
+                    control.MaskObject = new DMaskObject(control, {
+                        template: '',
+                        stripMask: false,
+                        regular: new RegExp('^([a-z0-9,!\\#\\$%&\'\\*\\+\\/=\\?\\^_`\\{\\|\\}~-]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])+(\\.([a-z0-9,!\\#\\$%&\'\\*\\+\\/=\\?\\^_`\\{\\|\\}~-]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])+)*@([a-z0-9-]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])+(\\.([a-z0-9-]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])+)*\\.(([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF]){2,})$', 'i'),
+                        templateReg: '',
+                        original: '',
+                        empty: getProperty(control, 'emptyMask', 'false') !== 'false',
+                        fillFirst: getProperty(control, 'fillFirstMask', 'false') !== 'false',
+                        noClearChar_: 'true'
+                    }, this);
+                    break;
+                case 'fio':
+                    control.MaskObject = new DMaskObject(control, {
+                        template: '',
+                        stripMask: false,
+                        regular: new RegExp('^([\\-\\s]+)?([А-ЯЁа-яё]+)([А-ЯЁа-яё\\-\\s]+)?$'),
+                        templateReg: '',
+                        original: '',
+                        empty: getProperty(control, 'emptyMask', 'false') !== 'false',
+                        fillFirst: getProperty(control, 'fillFirstMask', 'false') !== 'false'
+                    }, this);
+                    break;
+                case 'float':
+                    control.addEventListener('keypress', function() {
+                        setControlValue(control, getControlValue(control).replace(".", ","));
+                        setControlCaption(control, getControlCaption(control).replace(".", ","));
+                    }, true);
+
+                    if (isExistsControlByName(getProperty(control, 'name'))) {
+                        if (getControlCaption(control)) {
+                            setControlValue(control, String(parseToJSFloat(getControlCaption(control))).replace(".", ","));
+                            setControlCaption(control, String(parseToJSFloat(getControlCaption(control))).replace(".", ","));
+                        }
+                    }
+
+                    control.MaskObject = new DMaskObject(control, {
+                        template: '',
+                        stripMask: false,
+                        regular: new RegExp('^\\d+(,\\d+)?$'),
+                        templateReg: new RegExp('^\\d+((,\\d+)|(,|\\.))?$'),
+                        original: '',
+                        empty: getProperty(control, 'emptyMask', 'false') !== 'false',
+                        fillFirst: getProperty(control, 'fillFirstMask', 'false') !== 'false'
+                    }, this);
+                    break;
+                case 'float_dot':
+                    control.addEventListener('keypress', function() {
+                        setControlValue(control, getControlValue(control).replace(',', '.'));
+                        setControlCaption(control, getControlCaption(control).replace(',', '.'));
+                    }, true);
+
+                    if (isExistsControlByName(getProperty(control, 'name'))) {
+                        if (getControlCaption(control)) {
+                            setControlValue(control, String(parseToJSFloat(getControlCaption(control))).replace(',', '.'));
+                            setControlCaption(control, String(parseToJSFloat(getControlCaption(control))).replace(',', '.'));
+                        }
+                    }
+
+                    control.MaskObject = new DMaskObject(control, {
+                        template: '',
+                        stripMask: false,
+                        regular: new RegExp('^\\d+(\\.\\d+)?$'),
+                        templateReg: new RegExp('^\\d+((\\.\\d+)|(,|\\.))?$'),
+                        original: '',
+                        empty: getProperty(control, 'emptyMask', 'false') !== 'false',
+                        fillFirst: getProperty(control, 'fillFirstMask', 'false') !== 'false'
+                    }, this);
+                    break;
+                case 'pressure':
+                    control.MaskObject = new DMaskObject(control, {
+                        template: '',
+                        stripMask: false,
+                        regular: new RegExp('(?<=\\b[0-9]{2}\\b)\/{1}[0-9]{2}$|(?<=\\b[0-9]{3}\\b)\/{1}[0-9]{2,3}$'),
+                        templateReg: '',
+                        original: '',
+                        empty: getProperty(control, 'emptyMask', 'false') !== 'false',
+                        fillFirst: getProperty(control, 'fillFirstMask', 'false') !== 'false',
+                        noClearChar_: 'true'
+                    }, this);
+                    break;
+                case 'any':
+                    control.MaskObject = new DMaskObject(control, {
+                        template: '999999999999',
+                        stripMask: false,
+                        regular: new RegExp('^[0-9]*$'),
+                        templateReg: '',
+                        original: '999910109999',
+                        empty: getProperty(control, 'emptyMask', 'false') !== 'false',
+                        fillFirst: getProperty(control, 'fillFirstMask', 'false') !== 'false'
+                    }, this);
+                    break;
+                default:
+                    var options = getOptions(control);
+                    control.MaskObject = new DMaskObject(control, options, this);
+            }
+
+            page.addListener('onchangeproperty' + controlName, onChangePropertyEvent, this);
+        }
+    };
+
+    var init = function() {
+        var control;
+        var index;
+
+        if (typeof (page.memory.SYS_MaskInspector) === 'undefined') {
+            page.memory.SYS_MaskInspector = [];
+        }
+
+        // Массив в котором будет храниться: ключ - наименование компонента, значение - error
+        // Если есть ошибка в маске, добавляем в массив, иначе удаляем из массива
+        if (typeof page.memory.SYS_MaskComponents === 'undefined') {
+            page.memory.SYS_MaskComponents = [];
+        }
+
+        for (index = 0; index < effectControls.length; index++) {
+            if (typeof (page.memory.SYS_MaskInspector[effectControls[index]]) === 'undefined') {
+                var prevSysMask = page.memory.SYS_MaskInspector[effectControls[index - 1]];
+
+                page.memory.SYS_MaskInspector[effectControls[index]] = (prevSysMask && prevSysMask > 0) ? prevSysMask : 0;
+            }
+        }
+
+        onEvent();
+
+        for (index = 0; index < clones.length; index++) {
+            page.addListener('createCloneControl' + clones[index], createMask, this);
+            page.addListener('removeCloneControl' + clones[index], removeMask, this);
+        }
+
+        for (index = 0; index < controls.length; index++) {
+            control = getControlByName(controls[index]);
+            createMask.call(this, controls[index], control);
+        }
+    }
+
+    this.addEffectControl = function(control) {
+        effectControls[effectControls.length] = control;
+        init.call(this);
+    };
+
+    this.addControl = function(control) {
+        createMask.call(this, control, getControlByName(control));
+        controls[controls.length] = control;
+    };
+
+    this.delControl = function(control) {
+        if (~controls.indexOf(control)) {
+            removeMask.call(this, control, getControlByName(control));
+            controls.splice(controls.indexOf(control), 1);
+        }
+    };
+
+    this.getControls = function() {
+        return controls;
+    };
+
+    this.setRequireControl = function(controlName, isRequire) {
+        if (typeof isRequire !== 'boolean') {
+            throw new Error('Incorrect value type. Expected "boolean".');
+        }
+
+        if (!controls.includes(controlName) && isRequire) {
+            this.addControl(controlName);
+            return;
+        }
+
+        var controlDom = getControlByName(controlName);
+
+        setAttribute(controlDom, 'emptyMask', isRequire);
+        controlDom.MaskObject.options.empty = isRequire;
+
+        checkValue(controlDom, controlName, getValue(controlName));
+
+        function checkValue(dom, name, value) {
+            var maskObj = dom.MaskObject;
+
+            if (typeof maskObj === 'undefined') return;
+
+            if (maskObj.checkValue(value)) {
+                maskObj.onBlurSuccess(dom);
+            } else {
+                maskObj.onBlurError(value, dom);
+            }
+        }
+    };
+
+    this.onSuccessEvent = function(maskObject) {
+        if (maskObject.invalid) {
+            for (var index = 0; index < effectControls.length; index++) {
+                page.memory.SYS_MaskInspector[effectControls[index]]--;
+            }
+
+            if (maskObject.controlName) {
+                var indexMaskComponents = page.memory.SYS_MaskComponents.indexOf(maskObject.controlName);
+                if (indexMaskComponents > -1) {
+                    page.memory.SYS_MaskComponents.splice(indexMaskComponents, 1);
+                }
+            }
+
+            maskObject.invalid = false;
+
+            if (name) {
+                page.dispatchEvent('onchangeproperty' + name, domObject, maskObject.controlName, 'invalid', maskObject.invalid);
+            }
+
+            onEvent(maskObject);
+        }
+    };
+
+    this.onErrorEvent = function(maskObject) {
+        if (!maskObject.invalid) {
+            for (var index = 0; index < effectControls.length; index++) {
+                page.memory.SYS_MaskInspector[effectControls[index]]++;
+            }
+
+            if (maskObject.controlName && page.memory.SYS_MaskComponents.indexOf(maskObject.controlName) === -1) {
+                page.memory.SYS_MaskComponents.push(maskObject.controlName);
+            }
+
+            maskObject.invalid = true;
+
+            if (name) {
+                page.dispatchEvent('onchangeproperty' + name, domObject, maskObject.controlName, 'invalid', maskObject.invalid);
+            }
+
+            onEvent(maskObject);
+        }
+    };
+
+    init.call(this);
+}
+
+function MaskInspector_addEffectControl(name, Control) {
+    getControlByName(name).DMaskInspector.addEffectControl(Control);
+}
+
+function MaskInspector_addControl(name, Control) {
+    getControlByName(name).DMaskInspector.addControl(Control);
+}
+
+function MaskInspector_delControl(name, Control) {
+    getControlByName(name).DMaskInspector.delControl(Control);
+}
+
+function MaskInspector_getControls(name) {
+    return getControlByName(name).DMaskInspector.getControls();
+}
+
+/**
+ * Делает компонент обязательным / не обязательным, управляя значением атрибута emptyMask
+ * @param {string} maskInspectorName - Имя компонента маски
+ * @param {string} controlName - Имя компонента
+ * @param {boolean} value - Значение true / false
+ */
+function MaskInspector_setRequireControl(maskInspectorName, controlName, value) {
+    return getControlByName(maskInspectorName).DMaskInspector.setRequireControl(controlName, value);
+}
+
+function validNumber(ch) {
+    return (/[0-9]/i).test(ch);
+}
+
+function validAlpha(ch) {
+    return (/[a-zA-Zа-яА-Я]/i).test(ch);
+}
+
+function validAlphaNumeric(ch) {
+    return (/[a-zA-Zа-яА-Я0-9]/i).test(ch);
+}
+
+function validAlphaCyr(ch) {
+    return (/[а-яА-Я]/i).test(ch);
+}
+
+function validAlphaLat(ch) {
+    return (/[a-zA-Z]/i).test(ch);
+}
+
+function DMaskObject(domObject, options, maskInspector) {
+    var charMask = '9axkl';
+    var input = _getControlProperty(domObject, 'input');
+    var ctrlName = getProperty(domObject, 'name', '');
+    this.invalid = false;
+    this.options = options;
+    this.controlName = ctrlName;
+    this.system = maskInspector;
+
+    var event = function(e) {
+        return e || window.event;
+    };
+
+    var charCode = function(evt) {
+        if (evt.charCode !== undefined) {
+            return evt.charCode;
+        } else if (evt.keyCode) {
+            return evt.keyCode;
+        } else if (evt.which) {
+            return evt.which;
+        } else {
+            return 0;
+        }
+    };
+
+    var clickEvent = function() {
+        var s = getSelectionStart();
+
+        if (options.template && s === getSelectionEnd()) {
+            selectNext(s);
+        }
+    };
+
+    this.getControlValueMask = function(dom) {
+        if (dom.MaskObject) {
+            dom.MaskObject.selfGet = true;
+        } else {
+            dom.MaskObject = { selfGet: true };
+        }
+
+        var value = getControlValue(dom, true);
+        dom.MaskObject.selfGet = false;
+
+        return value;
+    };
+
+    var keypressEvent = function(evt) {
+        if (keyPress && options.template) {
+            if (this.updValue(String.fromCharCode(charCode(evt)), keyDownStartPosition, keyDownStartPosition + 1)) {
+                selectNext(keyDownStartPosition + 1);
+            }
+
+            checkBlurValue.call(this, blurEventValue.call(this, this.getControlValueMask(domObject)));
+            stopEvent(evt);
+            return;
+        }
+
+        if (keyPress && options.templateReg) {
+            if (this.updValue(String.fromCharCode(charCode(evt)), keyDownStartPosition, keyDownEndPosition)) {
+                setCursorPos(keyDownStartPosition + 1);
+            }
+
+            stopEvent(evt);
+        }
+    };
+
+    var keyPress = false;
+    var keyDownValue = '';
+    var keyDownStartPosition = 0;
+    var keyDownEndPosition = 0;
+
+    var keydownEvent = function (evt) {
+        // Ctrl+C , Ctrl+V
+        if (evt.ctrlKey && (evt.keyCode === 67 || evt.keyCode === 86)) {
+            keyPress = false;
+            return true;
+        }
+
+        if (options.template) {
+            var b = getSelectionStart();
+            var e = getSelectionEnd();
+            var keyCode = evt.keyCode;
+            keyPress = false;
+
+            switch (keyCode) {
+                case 8: {
+                    // backspace
+                    var outValue = updValue(this.getControlValueMask(domObject), getTemplate(b, e), b, e);
+                    setControlValue(domObject, outValue);
+                    selectPrev.call(this, b || 1);
+                    stopEvent(evt);
+                    break;
+                }
+                case 46: {
+                    var outValue = updValue(this.getControlValueMask(domObject), getTemplate(b, e), b, e);
+                    setControlValue(domObject, outValue);
+
+                    if (e - b > 1) {
+                        selectNext.call(this, e);
+                    } else {
+                        selectNext.call(this, b + 1);
+                    }
+
+                    stopEvent(evt);
+                    break;
+                }
+                case 45:   // Insert
+                case 33:   // PgUp
+                case 36: { // Home
+                    selectFirst.call(this);
+                    this.onWarningSuccess();
+                    stopEvent(evt);
+                    break;
+                }
+                case 34:   // PgDown
+                case 35: { // End
+                    selectLast.call(this);
+                    this.onWarningSuccess();
+                    stopEvent(evt);
+                    break;
+                }
+                case 40:   // Down
+                case 39: { // Right
+                    selectNext.call(this, b + 1);
+                    this.onWarningSuccess();
+                    stopEvent(evt);
+                    break;
+                }
+                case 38:   // Up
+                case 37: { // Left
+                    selectPrev.call(this, b);
+                    this.onWarningSuccess();
+                    stopEvent(evt);
+                    break;
+                }
+                default: {
+                    if ((keyCode > 31) && ((keyCode < 112) || (keyCode > 123)) || 'ёхъжэюб'.search(evt.key) >= 0) {
+                        keyPress = true;
+                        keyDownValue = this.getControlValueMask(domObject);
+                        keyDownStartPosition = b;
+                        keyDownEndPosition = e;
+                    }
+                }
+            }
+
+            return;
+        }
+
+        if (options.templateReg) {
+            var b = getSelectionStart();
+            var e = getSelectionEnd();
+            var keyCode = evt.keyCode;
+            keyPress = false;
+
+            switch (keyCode) {
+                case 8:    //backspace
+                case 45:   //Insert
+                case 46:   //del button keydown
+                case 33:   //Page up
+                case 34:   //Page down
+                case 35:   //End
+                case 36:   //Home
+                case 40:   //down
+                case 39:   //right
+                case 38:   //Up
+                case 37: { //Left
+                    if (options.templateReg.test(this.getControlValueMask(domObject))) {
+                        this.onWarningSuccess();
+                    } else {
+                        this.onWarningError();
+                    }
+                    break;
+                }
+                default: {
+                    if ((keyCode > 31 && ((keyCode < 112) || (keyCode > 123))) || keyCode === 0) {
+                        keyPress = true;
+                        keyDownValue = this.getControlValueMask(domObject);
+                        keyDownStartPosition = b;
+                        keyDownEndPosition = e;
+                    }
+                }
+            }
+        }
+    };
+
+    this.updValue = function(updateValue, b, e) {
+        var outValue = updValue(this.getControlValueMask(domObject), updateValue, b, e);
+        var check = this.checkTemplateValue(outValue);
+
+        if (check) {
+            setControlValue(domObject, outValue);
+            this.onWarningSuccess();
+        } else {
+            this.onWarningError();
+        }
+
+        return check;
+    };
+
+    this.onWarningError = function() {
+        _setControlProperty(domObject, 'color', '#f88');
+    };
+
+    this.onWarningSuccess = function() {
+        _setControlProperty(domObject, 'color', '#8f8');
+    };
+
+    this.onError = function(value, control) {
+        if (control && control.MaskObject) {
+            this.system.onErrorEvent(control.MaskObject);
+        } else {
+            this.system.onErrorEvent(this);
+        }
+    };
+
+    this.onBlurError = function(value, domEl) {
+        this.onError(value, domEl);
+        _setControlProperty(
+            domEl || domObject,
+            'color',
+            (
+                options.empty &&
+                value.length === 0 &&
+                getProperty(domEl || domObject, 'valid', 1) != 0
+            ) ? 'yellow' : 'red');
+    };
+
+    this.onSuccess = function(value, control) {
+        if (control && control.MaskObject) {
+            this.system.onSuccessEvent(control.MaskObject);
+        } else {
+            this.system.onSuccessEvent(this, options.empty);
+        }
+    };
+
+    this.onBlurSuccess = function(domEl) {
+        this.onSuccess(null, domEl);
+        _setControlProperty(domEl || domObject, 'color', '');
+    };
+
+    var updValue = function(value, updValue, startPosition, endPosition) {
+        return value.substring(0, startPosition) + updValue + value.substring(endPosition);
+    };
+
+    var blurValue = '';
+    var oldValue = '';
+
+    var focusEvent = function() {
+        if (getProperty(input, 'readonly', 'false') === 'true') {
+            input.select();
+            input.blur();
+            return;
+        }
+
+        var value = this.getControlValueMask(domObject);
+
+        if (options.template) {
+            if (blurValue !== '' && oldValue === value) {
+                value = blurValue;
+            } else {
+                value = wearMask(value);
+            }
+
+            if (options.stripMask) {
+                if (!this.checkValue(stripCheckMask(value))) {
+                    this.onWarningError();
+                } else {
+                    this.onWarningSuccess();
+                }
+            } else {
+                if (!this.checkValue(templateCheckValue(value))) {
+                    this.onWarningError();
+                } else {
+                    this.onWarningSuccess();
+                }
+            }
+        } else {
+            if (blurValue !== '' && oldValue === value) {
+                value = blurValue;
+            }
+
+            if (!this.checkValue(value)) {
+                this.onWarningError();
+            } else {
+                this.onWarningSuccess();
+            }
+        }
+
+        setControlValue(domObject, value);
+
+        if (options.firstPos || options.firstPos === undefined) {
+            selectFirst(value);
+        }
+    };
+
+    var getTemplate = function(start, end) {
+        end = end > options.template.length ? options.template.length : end;
+        var res = '';
+
+        for (var index = start; index < end; index++) {
+            if (charMask.indexOf(options.template.charAt(index)) >= 0) {
+                res += '_';
+            } else {
+                res += options.template.charAt(index);
+            }
+        }
+
+        return res;
+    };
+
+    var wearMask = function(value) {
+        var tpl = options.template;
+        var iv = 0;
+        var rvalue = '';
+
+        for (var i = 0, c = tpl.length; i < c; i++) {
+            if ("9ax".indexOf(tpl.charAt(i)) >= 0) {
+                if (iv < value.length) {
+                    rvalue += value.charAt(iv);
+                    iv++;
+                } else {
+                    rvalue += '_';
+                }
+            } else {
+                rvalue += tpl.charAt(i);
+                if (tpl.charAt(i) === value.charAt(iv)) iv++;
+            }
+        }
+
+        return rvalue;
+    };
+
+    this.checkValue = function(value) {
+        if (value === null) {
+            value = '';
+        }
+
+        return (options.regular.test(value) && (!options.checkFunc || options.checkFunc(value)) && (!options.empty || value.length !== 0)) ||
+            (!options.empty && value.length === 0);
+    };
+
+    this.checkTemplateValue = function(value) {
+        if (value === null) {
+            value = '';
+        }
+
+        var notStripValue = value;
+        value = (options.stripMask) ? stripCheckMask(value) : templateCheckValue(value);
+
+        return (!options.empty && value.length === 0) ||
+               (
+                   (checkValueByTemplate(notStripValue) || options.templateReg || options.checkFunc) &&
+                   (!options.templateReg || options.templateReg.test(value)) &&
+                   (!options.checkFunc || options.checkFunc(value))
+               );
+    };
+
+    var checkValueByTemplate = function(value) {
+        if (!options.template) {
+            return true;
+        }
+
+        var tpl = options.template;
+        var ch = '';
+
+        for (var i = 0, c = tpl.length; i < c; i++) {
+            ch = value.charAt(i);
+
+            switch (tpl.charAt(i)) {
+                case '9':
+                    if (!validNumber(ch) && ch !== '_') {
+                        return false;
+                    }
+
+                    break;
+                case 'a':
+                    if (!validAlpha(ch) && ch !== '_') {
+                        return false;
+                    }
+
+                    break;
+                case 'x':
+                    if (!validAlphaNumeric(ch) && ch !== '_') {
+                        return false;
+                    }
+
+                    break;
+                case 'k':
+                    if (!validAlphaCyr(ch) && ch !== '_') {
+                        return false;
+                    }
+
+                    break;
+                case 'l':
+                    if (!validAlphaLat(ch) && ch !== '_') {
+                        return false;
+                    }
+
+                    break;
+                default:
+                    if (ch !== '_' && ch !== tpl.charAt(i) && ch !== '_') {
+                        return false;
+                    }
+
+                    break;
+            }
+        }
+
+        return true;
+    };
+
+    var blurEventValue = function(value) {
+        if (options.template) {
+            if (options.stripMask) {
+                value = stripMask(value);
+            } else {
+                if (options.original !== templateCheckValue(value)) {
+                    value = clearValue(value);
+                } else {
+                    if (options.original !== value) {
+                        value = '';
+                    }
+                }
+            }
+        } else {
+            value = clearValue(value);
+        }
+
+        return value;
+    };
+
+    var checkBlurValue = function(value) {
+        if (!this.checkValue(value)) {
+            this.onError(value);
+        } else {
+            this.onSuccess();
+        }
+    };
+
+    var blurEvent = function(evt, force) {
+        var value = this.getControlValueMask(domObject);
+        value = blurEventValue.call(this, value);
+
+        if (!this.checkValue(value)) {
+            this.onBlurError(value);
+        } else {
+            // Проверяем, есть ли обязательные поля
+            if (domObject.m_DepControl) {
+                var that = this;
+
+                domObject.m_DepControl[0].m_RequiredControls.forEach(function(control) {
+                    // Проверяем, является ли данное поле обязательным
+                    if (control === that.controlName) {
+                        if (value) {
+                            that.onBlurSuccess();
+                        }
+                    }
+                });
+            } else {
+                this.onBlurSuccess();
+            }
+        }
+
+        setControlValue(domObject, value);
+
+        if (!force && this.getControlValueMask(domObject) !== value) {
+            blurEvent.call(this, evt, true);
+        }
+    };
+
+    var changePropEvent = function(domEl, controlName, propertyName, propertyValue) {
+        if (typeof domEl.MaskObject === 'undefined') {
+            return;
+        }
+
+        if (propertyName === 'value' || propertyName === 'keyvalue') {
+            propertyValue = blurEventValue.call(this, propertyValue);
+
+            if (!this.checkValue(propertyValue)) {
+                this.onBlurError(propertyValue, domEl);
+            } else {
+                this.onBlurSuccess(domEl);
+            }
+
+            if (propertyName === 'value') {
+                _setControlProperty(domEl, 'value', propertyValue);
+            }
+        }
+    };
+
+    var getPropEvent = function(domEl, controlName, propertyName, propertyValueRef) {
+        if (propertyName === 'value' && domEl && domEl.MaskObject && !domEl.MaskObject.selfGet) {
+            propertyValueRef.value = blurEventValue.call(this, propertyValueRef.value);
+        }
+    };
+
+    var stripMask = function(value) {
+        var template = options.template;
+        var outValue = '';
+        var ch = '';
+
+        for (var index = 0; index < template.length; index++) {
+            if (charMask.indexOf(template.charAt(index)) >= 0 && (ch = value.charAt(index)) !== '_') {
+                outValue += ch;
+            }
+        }
+
+        return outValue;
+    };
+
+    var stripCheckMask = function(value) {
+        var template = options.template;
+        var outValue = '';
+        var original = options.original;
+        var ch = '';
+        var fillFirst = options.fillFirst;
+
+        for (var index = 0; index < template.length; index++) {
+            if (charMask.indexOf(template.charAt(index)) >= 0) {
+                if ((ch = value.charAt(index)) === '_' && !fillFirst) {
+                    outValue += original.charAt(index);
+                } else {
+                    outValue += ch;
+                }
+            }
+        }
+
+        var tempValue = '';
+
+        if (fillFirst) {
+            for (var index = 0; index < template.length; index++) {
+                if (charMask.indexOf(template.charAt(index)) >= 0) {
+                    if ((ch = value.charAt(index)) === '_') {
+                        tempValue += original.charAt(index);
+                    }
+                }
+            }
+
+            outValue = tempValue + outValue;
+        }
+
+        return outValue;
+    };
+
+    var templateCheckValue = function(value) {
+        var outValue = '';
+
+        if (!options.template) {
+            return value;
+        }
+
+        if (!value) {
+            return outValue;
+        }
+
+        var template = options.template;
+        var original = options.original;
+        var ch = '';
+        var tempValue = '';
+        var fillFirst = options.fillFirst;
+
+        for (var index = 0; index < template.length; index++) {
+            if ((ch = value.charAt(index)) === '_' && !fillFirst) {
+                outValue += original.charAt(index);
+            } else if ((ch = value.charAt(index)) === '_' && fillFirst) {
+                tempValue += original.charAt(index);
+            } else {
+                outValue += ch;
+            }
+        }
+
+        if (fillFirst) {
+            outValue = tempValue + outValue;
+        }
+
+        return outValue;
+    };
+
+    var clearValue = function(value) {
+        var outValue = '';
+
+        if (!value) {
+            return outValue;
+        }
+
+        var original = options.original;
+        var ch = '';
+        var tempValue = '';
+        var fillFirst = options.fillFirst;
+        var noClearChar_ = options.noClearChar_;
+
+        for (var index = 0; index < value.length; index++) {
+            ch = value.charAt(index);
+
+            if (noClearChar_) {
+                outValue += ch;
+            } else if (ch === '_' && options.clearValue) {
+                outValue += '';
+            } else if (ch === '_' && !fillFirst) {
+                outValue += original.charAt(index);
+            } else if (ch === '_' && fillFirst) {
+                tempValue += original.charAt(index);
+            } else {
+                outValue += ch;
+            }
+        }
+
+        if (fillFirst) {
+            outValue = tempValue + outValue;
+        }
+
+        return outValue;
+    };
+
+    var self = this;
+
+    var onpaste = function() {
+        if (options.template) {
+            setControlValue(domObject, '');
+
+            setTimeout(function() {
+                var pasteValue = getControlValue(domObject);
+                var tpl = options.template;
+                var resValue = '';
+
+                for (var i = 0, u = 0, c = tpl.length; i < c; i++, u++) {
+                    var ch = pasteValue.charAt(u);
+
+                    if (ch === '') {
+                        break;
+                    }
+
+                    switch (tpl.charAt(i)) {
+                        case '9':
+                            if (!validNumber(ch) && ch !== '_') {
+                                ch = '_';
+                            }
+
+                            break;
+                        case 'a':
+                            if (!validAlpha(ch) && ch !== '_') {
+                                ch = '_';
+                            }
+
+                            break;
+                        case 'x':
+                            if (!validAlphaNumeric(ch) && ch !== '_') {
+                                ch = '_';
+                            }
+
+                            break;
+                        case 'k':
+                            if (!validAlphaCyr(ch) && ch !== '_') {
+                                ch = '_';
+                            }
+
+                            break;
+                        case 'l':
+                            if (!validAlphaLat(ch) && ch !== '_') {
+                                ch = '_';
+                            }
+
+                            break;
+                        default:
+                            if (ch !== '_' && ch !== tpl.charAt(i)) {
+                                ch = tpl.charAt(i);
+                                u--;
+                            }
+
+                            break;
+                    }
+
+                    resValue += ch;
+                }
+
+                setControlValue(domObject, resValue);
+            }, 100);
+        }
+    };
+
+    var onclick = function(e) {
+        clickEvent.call(self, event(e));
+    };
+
+    var onkeydown = function(e) {
+        keydownEvent.call(self, event(e));
+    };
+
+    var onkeypress = function(e) {
+        keypressEvent.call(self, event(e));
+    };
+
+    var onfocus = function(e) {
+        focusEvent.call(self, event(e));
+    };
+
+    var onblur = function(e) {
+        blurEvent.call(self, event(e));
+    };
+
+    this.CheckValidValue = function() {
+        onblur.call(self);
+    };
+
+    var onchangeProp = function(domEl, controlName, propertyName, propertyValue) {
+        changePropEvent.call(self, domEl, controlName, propertyName, propertyValue);
+    };
+
+    var ongetProp = function(domEl, controlName, propertyName, propertyValueRef) {
+        getPropEvent.call(self, domEl, controlName, propertyName, propertyValueRef);
+    };
+
+    var init = function() {
+        if (typeof (options.original) === 'undefined') {
+            options.original = options.template;
+        }
+
+        addEvent(input, 'click', onclick);
+        addEvent(input, 'keydown', onkeydown);
+        addEvent(input, 'keypress', onkeypress);
+        addEvent(input, 'focus', onfocus);
+        addEvent(input, 'blur', onblur);
+        addEvent(input, 'paste', onpaste);
+        getPageByDom(domObject).addListener('onchangeproperty' + ctrlName, onchangeProp, null, false);
+        getPageByDom(domObject).addListener('ongetproperty' + ctrlName, ongetProp, null, false);
+
+        var value = this.getControlValueMask(domObject);
+
+        if (!this.checkValue(value)) {
+            this.onBlurError(value);
+        }
+    };
+
+    init.call(this);
+
+    this.remove = function() {
+        removeEvent(input, 'click', onclick);
+        removeEvent(input, 'keydown', onkeydown);
+        removeEvent(input, 'keypress', onkeypress);
+        removeEvent(input, 'focus', onfocus);
+        removeEvent(input, 'blur', onblur);
+        removeEvent(input, 'paste', onpaste);
+
+        getPageByDom(domObject).removeListener('onchangeproperty' + ctrlName, onchangeProp, null, false);
+        getPageByDom(domObject).removeListener('ongetproperty' + ctrlName, ongetProp, null, false);
+
+        _setControlProperty(domObject, 'color', '');
+    };
+
+    var selectFirst = function() {
+        selectNext(0);
+    };
+
+    var selectLast = function() {
+        selectPrev(this.getControlValueMask(domObject).length);
+    };
+
+    var selectPrev = function(start) {
+        if (options.stripMask || options.template) {
+            for (var index = start - 1; index >= 0; index--) {
+                if (charMask.indexOf(options.template.charAt(index)) >= 0) {
+                    setSelection(index, index + 1);
+                    break;
+                }
+            }
+        } else {
+            if (start !== 0) {
+                setSelection(start - 1, start);
+            }
+        }
+    };
+
+    var selectNext = function(start) {
+        if (options.stripMask || options.template) {
+            if (start >= options.template.length) {
+                start = options.template.length - 1;
+            }
+
+            for (var index = start; index < options.template.length; index++) {
+                if (charMask.indexOf(options.template.charAt(index)) >= 0) {
+                    setSelection(index, index + 1);
+                    break;
+                }
+            }
+        } else {
+            setSelection(start, start + 1);
+        }
+    };
+
+    var setSelection = function(a, b) {
+        input.focus();
+
+        if (input.setSelectionRange) {
+            input.setSelectionRange(a, b);
+        } else if (input.createTextRange) {
+            var r = input.createTextRange();
+            r.collapse();
+            r.moveStart("character", a);
+            r.moveEnd("character", (b - a));
+            r.select();
+        }
+    };
+
+    var getSelectionStart = function() {
+        var p = 0;
+        input.focus();
+
+        if (input.selectionStart) {
+            if (typeof (input.selectionStart) === "number") {
+                p = input.selectionStart;
+            }
+        } else if (document.selection) {
+            var r = document.selection.createRange().duplicate();
+            r.moveEnd("character", input.value.length);
+            p = input.value.lastIndexOf(r.text);
+
+            if (r.text === "") {
+                p = input.value.length;
+            }
+        }
+
+        return p;
+    };
+
+    var getSelectionEnd = function() {
+        var p = 0;
+        input.focus();
+
+        if (input.selectionEnd) {
+            if (typeof (input.selectionEnd) === "number") {
+                p = input.selectionEnd;
+            }
+        } else if (document.selection) {
+            var r = document.selection.createRange().duplicate();
+            r.moveStart("character", -input.value.length);
+            p = r.text.length;
+        }
+
+        return p;
+    };
+
+    var setCursorPos = function(pos) {
+        input.focus();
+
+        if (input.setSelectionRange) {
+            input.setSelectionRange(pos, pos);
+        } else if (input.createTextRange) {
+            var r = input.createTextRange();
+            r.moveStart("character", pos);
+            r.moveEnd("character", pos + 1);
+            r.collapse();
+            r.select();
+        }
+    };
+}

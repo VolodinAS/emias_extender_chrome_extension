@@ -1,0 +1,233 @@
+SYS_ControlActions['SortItem']=new Array();
+SYS_ControlActions['SortItem']['value']={set:SortItem_SetValue,get:SortItem_GetValue};
+SYS_ControlActions['SortItem']['constant']={get:SortItem_GetConstant};
+
+SYS_ControlActions['Sort']=new Array();
+SYS_ControlActions['Sort']['value']={set:Sort_SetValue,get:Sort_GetValue};
+
+function SortItem_GetValue(_domObject) {
+    return getProperty(_domObject, 'sortorder', '');
+}
+function SortItem_SetValue(_domObject, _value) {
+    _domObject.setAttribute('sortorder', _value || '');
+}
+function SortItem_GetConstant(_domObject) {
+    return Boolean(getProperty(_domObject, 'constant', false));
+}
+function Sort_Init(_domObject) {
+    _domObject.sortItems = {};
+    _domObject.innerHTML = '';
+}
+function Sort_GetValue(_domObject) {
+    return _domObject.innerHTML;
+}
+function Sort_getSortItem_ByName(_domObject, _name) {
+    if (typeof _domObject.sortItems !== 'undefined' && _name in _domObject.sortItems)
+        return (_domObject.sortItems[_name]);
+    else
+        return (false);
+}
+function Sort_SetValue(_domObject, _value)//В value dom SortItem
+{
+    var _name = getProperty(_value, 'name', '');
+    _domObject.innerHTML += ';' + _name;
+    _domObject.sortItems[_name] = _value;
+}
+/**
+ *
+ * @param _dom - DOM-объект сортировки
+ * @param groupField - Значение для statGrid - при добавлении группировки или снятия группировку(add или del)
+ */
+function setSort(_dom, groupField) {
+    var _ds = getProperty(_dom, 'refreshdataset', '');
+    var _sortorder = SortItem_GetValue(_dom);
+
+    // Проверяем где выполняется сортировка
+    if (groupField) {
+        // Сохраняем старое значение
+        var oldSortGroupValue = _sortorder;
+        if (oldSortGroupValue < 0) {
+            _sortorder = 1;
+        } else {
+            _sortorder = '';
+        }
+
+        // Изменяем на новое значение поле сортировки
+        if (_sortorder == 1 || _sortorder == -1) {
+            if (_sortorder == -1) {
+                SortItem_SetValue(_dom, '');
+            } else if (_sortorder == 1) {
+                SortItem_SetValue(_dom, -1);
+            }
+        } else {
+            SortItem_SetValue(_dom, 1);
+        }
+        Colibrate(_dom, 1, groupField, oldSortGroupValue);
+    } else {
+        // Изменяем на новое значение поле сортировки
+        if (_sortorder == 1 || _sortorder == -1) {
+            if (_sortorder == -1) {
+                SortItem_SetValue(_dom, '');
+                Colibrate(_dom, 1);
+            } else if (_sortorder == 1) {
+                SortItem_SetValue(_dom, -1);
+            }
+        } else {
+            SortItem_SetValue(_dom, 1);
+            Colibrate(_dom, 2);
+        }
+    }
+
+    SI_register(_dom);
+    SI_setclass(_dom);
+    if (!groupField) {
+        _dom.DForm.refreshDataSet(_ds)
+    }
+}
+
+//function arrCompare(_a,_b){return Math.abs(_a) - Math.abs(_b)}
+
+function Colibrate(_dom, _new_ind, groupField, oldSortGroupValue) {
+    //проверить, вдруг есть сортировка другово поля
+    //var _ds =  getProperty(_dom, 'refreshdataset', '');
+    var _name = getProperty(_dom, 'name', '');
+    var _dom_s = _dom.Sort;
+    var _reg_items = Sort_GetValue(_dom_s).split(';');
+    var _items = new Array();
+    var _ind = 0;
+    var _substr_name = '';
+
+    var _dom_si;
+    // Ищем где используется сортировка, если statGrid
+    // то смотрим где выполняется сортировка, в группированной строке или в гриде
+    if (D3Api.getControlByDom(_dom, 'StatGrid')) {
+        var statgrid = D3Api.getControlByDom(_dom, 'StatGrid');
+        var statgridgroups = D3Api.getDomByAttr(statgrid, 'cont', 'statgridgroups');
+        var field = getProperty(_dom, 'field', '')
+        if (D3Api.getDomByAttr(statgridgroups, 'field', field)) {
+            var sortGroup = D3Api.getDomByAttr(statgridgroups, 'field', field);
+        } else {
+            var sortGroup = null;
+        }
+    }
+
+    // Перебираем массив(сортировки других полей)
+    for (var i = 0; i < _reg_items.length; i++) {
+        if (!_reg_items[i]) {
+            continue;
+        }
+        _dom_si = Sort_getSortItem_ByName(_dom_s, _reg_items[i]);
+        if (_dom_si) {
+            var _value = +SortItem_GetValue(_dom_si);
+            var constant = SortItem_GetConstant(_dom_si);
+            if (_value && _reg_items[i] !== _name && !constant &&
+                (statgridgroups && !D3Api.getDomByAttr(statgridgroups, 'field', getProperty(_reg_items[i], 'field', '')) || !statgridgroups)
+            ) {
+                var znakGroupField;
+                if (_value < 0) znakGroupField = -1; else znakGroupField = 1;
+                // Смотрим откуда была вызвана сортировка
+                if (groupField === 'add') {
+                    if (Math.abs(_value) > Math.abs(oldSortGroupValue)) {
+                        _items[_reg_items[i]] = znakGroupField === -1 ? _value + 1 : _value - 1;
+                    } else {
+                        _items[_reg_items[i]] = _value
+                    }
+                    // При добавлении группировки проверяем, какое было старое значение и поля _reg_items[i], для нахождения первоначальной нумерации сортировки
+                    if (+_items[_reg_items[i]] !== oldSortGroupValue) {
+                        if (Math.abs(_items[_reg_items[i]]) < Math.abs(oldSortGroupValue) || Math.abs(oldSortGroupValue) === 1) {
+                            _new_ind = 1;
+                        } else if (Math.abs(_items[_reg_items[i]]) > Math.abs(oldSortGroupValue)) {
+                            _new_ind = 2;
+                        }
+                    }
+                } else if (groupField === 'del') {
+                    _items[_reg_items[i]] = znakGroupField === -1 ? _value - 1 : _value + 1;
+                    _new_ind = 2;
+                } else if (empty(sortGroup)) {
+                    _items[_reg_items[i]] = _value;
+                }
+            }
+        }
+    }
+
+
+    var _items_sort = new Array();
+    for (var _ind in _items) {
+        if (_items.hasOwnProperty(_ind)) {
+            _items_sort[Math.abs(_items[_ind])] = _ind;
+        }
+    }
+    var _class = null;
+    for (var _i in _items_sort) {
+        if (_items_sort.hasOwnProperty(_i)) {
+            _ind = _items_sort[_i];
+            _value = _items[_ind];
+            var _znak;
+            if (_value < 0) _znak = -1; else _znak = 1;
+            var _newvalue = _new_ind;
+            if (_newvalue) {
+                _newvalue = _newvalue * _znak;
+            }
+            _dom_si = Sort_getSortItem_ByName(_dom_s, _ind);
+            if (_dom_si) {
+                SortItem_SetValue(_dom_si, _newvalue);
+                SI_setclass(_dom_si);
+            }
+            //getControlByName(_ind).className = _class;
+            _new_ind += 1;
+        }
+    }
+}
+
+function SI_setclass(_dom) {
+    var page = getPageByDom(_dom);
+    var _value = getControlValue(_dom);
+    var name = D3Api.BaseCtrl.getName(_dom) + '_level';
+    var _class = '';
+    if (_value) {
+        if (_value > 0) {
+            _class = 'sort-orderasc';
+            page.setCaption(name, _value);
+        } else if (_value < 0) {
+            _class = 'sort-orderdesc';
+            page.setCaption(name, (+_value) * -1);
+        } else {
+            _class = 'sort-nextsort';
+            page.setCaption(name, '');
+        }
+    } else {
+        _class = 'sort-ordernone';
+        page.setCaption(name, '');
+    }
+
+    _dom.className = _class;
+}
+
+function SI_create(_dom, _cmptype , _fieldColumn) {
+    var _ds = getProperty(_dom, 'refreshdataset', '');
+    var _name = getProperty(_dom, 'name', '');
+    var _fieldname = '_srt[' + getProperty(_dom, 'field', '') + ']';
+    var sortField = getProperty(_dom, 'field', '');
+    if (_cmptype === 'StatColumn' && sortField !== _fieldColumn) {
+        var _data = {get: _fieldname, srctype: 'ctrl', src: _name, ignorenull: false, groupName: _fieldColumn, sortName: sortField};
+    } else {
+        var _data = {get: _fieldname, srctype: 'ctrl', src: _name, ignorenull: false};
+    }
+    addSystemInfo(_ds, _data);
+    _dom.Sort = getControlByName(_ds + '_Sort');
+    if (getControlValue(_dom)) {
+        SI_register(_dom);
+        SI_setclass(_dom);
+    }
+}
+
+function SI_register(_dom) {
+    var _ds = getProperty(_dom, 'refreshdataset', '');
+    var _name = getProperty(_dom, 'name', '');
+    var _con = _dom.Sort;
+    var _reg_items = Sort_GetValue(_con); //Массив дом объектов SortItem
+    if (empty(_reg_items))
+        Sort_Init(_con);
+    if (_reg_items.indexOf(_name) === -1)
+        Sort_SetValue(_con, _dom);
+}

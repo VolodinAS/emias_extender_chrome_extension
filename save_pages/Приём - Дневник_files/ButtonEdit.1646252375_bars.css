@@ -1,0 +1,60 @@
+table.button-edit{
+    display:inline-table;
+    vertical-align:bottom;
+    border-collapse: separate;
+}
+td.btne-button{
+	 width: 20px;
+}
+img.button-edit-enable,img.activ-enable,img.search-enable,img.price-enable,img.summ-enable
+{
+	cursor:pointer;
+}
+img.button-edit-enable:hover,img.activ-enable:hover,img.search-enable:hover,img.price-enable:hover,img.summ-enable:hover
+{
+ background-position: 0 -21px;
+}
+img.button-edit-disable,img.activ-disable,img.search-disable,img.price-disable,img.summ-disable{
+  cursor:default !important;
+ background-position: 0 -41px !important;
+}
+
+img.button-edit
+{
+	 background: url('../images/button-edit.png') no-repeat; /* Путь к файлу с исходным рисунком */
+}
+/*--	Begin activ style	--*/
+img.activ{
+	 background: url('../images/button-active.png') no-repeat; /* Путь к файлу с исходным рисунком */
+}
+/*--	End activ style	--*/
+
+/*--	Begin search style	--*/
+img.search{
+	 background: url('../images/button-search.png') no-repeat; /* Путь к файлу с исходным рисунком */
+}
+/*--	End search style	--*/
+
+/* --	Begin price style	--*/
+img.price{
+	 background: url('../images/button-price.png') no-repeat; /* Путь к файлу с исходным рисунком */
+}
+/*--	End price style	--*/
+
+/* --	Begin summ style	--*/
+img.summ{
+	 background: url('../images/button-summ.png') no-repeat; /* Путь к файлу с исходным рисунком */
+}
+/*--	End summ style	--*/
+img.button-edit,img.activ,img.search,img.price,img.summ{
+	 width: 20px;
+	 height: 19px;
+	 vertical-align: top;
+         cursor:pointer;
+         background-position: right -1px;
+}
+a.template_link {
+	color: #6C6C6C;
+	text-align: left;
+	cursor: pointer;
+}

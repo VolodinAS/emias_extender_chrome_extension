@@ -1,0 +1,38 @@
+.block_expander
+{
+   background: url('../images/bars/blockbackground.png') no-repeat;
+    -o-background-size: 100% 100%; -webkit-background-size: 100% 100%; -khtml-background-size: 100% 100%; background-size: 100% 100%;
+
+    background: -moz-linear-gradient(top,#fff,#ededed);
+    background: -webkit-gradient(linear, left top, left bottom, from(#fff), to(#ededed));
+    filter: progid:DXImageTransform.Microsoft.gradient(enabled='true',startColorstr=#ffffff,endColorstr=#ededed,GradientType=0); zoom: 1;
+    background: linear-gradient(top,#fff,#ededed);
+    background-clip: border-box; -moz-background-clip: border; -webkit-background-clip: border-box;
+    background-origin: border-box; -moz-background-origin: border; -webkit-background-origin: border-box;
+
+    border-top: 1px solid #D6D6D6;
+    cursor: pointer;
+    height: 16px;
+    padding-top: 2px;
+    text-align: center;
+    vertical-align: middle;
+
+    -moz-border-radius: 5px;
+    -webkit-border-radius: 5px;
+    -o-border-radius: 5px;
+    border-radius: 5px;
+
+    color:#8E8E8E;
+    font-size: smaller;
+    position: relative;
+    behavior: url('Styles/PIE.htc');
+}
+
+.block_expander.up>img.turn_up,.block_expander.down>img.turn_down
+{
+    display:none;
+}
+div[class="block_expander"]>img.turn_up
+{
+    display: none;
+}

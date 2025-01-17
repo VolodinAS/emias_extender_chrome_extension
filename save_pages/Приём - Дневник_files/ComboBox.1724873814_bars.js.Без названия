@@ -1,0 +1,1535 @@
+if(typeof(SYS_ControlActions['ComboBox']) == 'undefined'){SYS_ControlActions['ComboBox']=new Array();}
+SYS_ControlActions['ComboBox']['value']={set:ComboBox_SetValue,get:ComboBox_GetValue};
+SYS_ControlActions['ComboBox']['caption']={get:ComboBox_GetCaption,set:ComboBox_SetCaption};
+SYS_ControlActions['ComboBox']['enabled']={set:ComboBox_SetEnabled,get:GetEnabled};
+SYS_ControlActions['ComboBox']['readonly']={set:ComboBox_SetReadonly,get:ComboBox_GetReadonly};
+SYS_ControlActions['ComboBox']['color']={set:ComboBox_SetColor,get:ComboBox_GetColor};
+SYS_ControlActions['ComboBox']['input']={get:function (_domObject){return ComboBox_getInput(_domObject);}};
+SYS_ControlActions['ComboBox']['hint']={set:_setHint,get:_getHint};
+SYS_ControlActions['ComboBox']['visible']={set:ComboBox_SetVisible,get:ComboBox_GetVisible};
+SYS_ControlActions['ComboBox']['focus']={set:ComboBox_SetFocus,get:ComboBox_GetFocus};
+
+SYS_ControlActions['ComboItem']=new Array();
+SYS_ControlActions['ComboItem']['value']={set:ComboItem_SetValue,get:ComboItem_GetValue};
+SYS_ControlActions['ComboItem']['caption']={set:ComboItem_SetCaption};
+SYS_ControlActions['ComboItem']['hint']={set:_setHint,get:_getHint};
+SYS_ControlActions['ComboItem']['enabled']={set:ComboItem_SetEnabled, get:ComboItem_GetEnabled};
+SYS_ControlActions['ComboBox']['opened']={set:ComboItem_SetOpenedParent,get:ComboItem_GetOpenedParent};
+
+function ComboBox_getControl(_domObject) {
+    if (getProperty(_domObject, 'cmptype', null) == 'ComboBox') {
+        return _domObject;
+    }
+    if (_domObject._ComboBoxDom) {
+        return _domObject._ComboBoxDom;
+    }
+    var parent_ctrl = _domObject.parentNode;
+    if (parent_ctrl) {
+        var i = 0;
+        while (getProperty(parent_ctrl, 'cmptype', null) != 'ComboBox' && !parent_ctrl._ComboBoxDom && i < 7) {
+            parent_ctrl = parent_ctrl.parentNode;
+            i++;
+        }
+        return (parent_ctrl._ComboBoxDom) ? parent_ctrl._ComboBoxDom : parent_ctrl;
+    }
+    return null
+}
+//Получить dom- объект input из основного компонента
+function ComboBox_getInput(_domObject) {
+    if (hasClass(_domObject, 'cmbb-button')) {
+        _domObject = ComboBox_getControl(_domObject);
+    }
+    for (var i = 0; i < _domObject.rows.length; i++) {
+        for (var j = 0; j < _domObject.rows[i].cells.length; j++) {
+            if (hasClass(_domObject.rows[i].cells[j], 'cmbb-input'))
+                return getChildTag(_domObject.rows[i].cells[j], 'input', 0);
+        }
+    }
+
+    return false;
+}
+//Получить dom- объект img из основного компонента
+function ComboBox_getImg(_domObject) {
+    if (hasClass(_domObject, 'cmbb-button')) {
+        _domObject = ComboBox_getControl(_domObject);
+    }
+    for (var i = 0; i < _domObject.rows.length; i++) {
+        for (var j = 0; j < _domObject.rows[i].cells.length; j++) {
+            if (hasClass(_domObject.rows[i].cells[j], 'cmbb-button'))
+                return getChildTag(_domObject.rows[i].cells[j], 'img', 0);
+        }
+    }
+    return false;
+}
+
+function ComboBox_Create(combo_box) {
+    if (getProperty(combo_box, 'anyvalue') == 'true') {
+        ComboBox_SetReadonly(combo_box, false);
+    }
+    //combo_box.options = [];
+    var item = ComboBox_getItemDataset(combo_box);
+
+    if (item != null)
+        return;
+
+    item = ComboBox_getItemStaticSelected(combo_box);
+
+    if (item == null)
+        item = ComboBox_getItemByIndex(combo_box, 0);
+
+    if (item == null)
+        return false;
+
+    ComboBox_setItemSelected(combo_box, item.option);
+
+    ComboBox_setOptions(combo_box);
+
+    ComboBox_refreshEmptyItem(combo_box);
+
+    ComboBox_prepareInputMode(combo_box);
+}
+function ComboBox_setOptions(combo_box) {
+    if (!combo_box.options || combo_box.options.length == 0) {
+        var drop_list = ComboBox_getDropList(combo_box);
+        var item_container = ComboBox_getTable(drop_list);
+        combo_box.options = item_container.rows;
+    }
+}
+function ComboBox_PostClone(combo_box) {
+    var drop_list = ComboBox_getDropList(combo_box);
+
+    var item_container = ComboBox_getTable(drop_list);
+
+    if (!combo_box.options) {
+        combo_box.options = item_container.rows;
+    }
+
+    var item = ComboBox_getItemByValue(combo_box, ComboBox_GetValue(combo_box));
+
+    if (item == null)
+        return;
+
+    ComboBox_refreshEmptyItem(combo_box);
+
+    ComboBox_setItemSelected(combo_box, item.option);
+}
+
+function ComboBox_AfterRefresh(_domObject) {
+    var combo_box = ComboBox_getControl(_domObject);
+
+    if (!combo_box) {
+        return false;
+    }
+    var item = ComboBox_getItemStaticSelected(combo_box);
+
+    var drop_list = ComboBox_getDropList(combo_box);
+
+    var item_container = ComboBox_getTable(drop_list);
+
+    if (combo_box.storedValue != undefined) {
+        item = ComboBox_getItemByValue(_domObject, combo_box.storedValue);
+        combo_box.storedValue = undefined;
+    } else if (item == null && item_container.rows.length > 1) {
+        // Вангую, что эта ветка не исполнялась ни разу с 2012-го года.
+        var ii = getProperty(combo_box, 'initIndex', item_container.rows.length - 2);
+        item = ComboBox_getItemByIndex(combo_box, ii);
+    }
+
+    if (item == null) {
+        item = {option: undefined};
+    }
+
+    ComboBox_setItemSelected(combo_box, item.option);
+
+    if (!combo_box.options) {
+        combo_box.options = item_container.rows;
+    }
+
+    ComboBox_refreshEmptyItem(combo_box);
+
+    ComboBox_prepareInputMode(combo_box, undefined, true);
+}
+
+function ComboBox_refreshEmptyItem(combo_box) {
+    var drop_list = ComboBox_getDropList(combo_box);
+
+    var item_container = ComboBox_getTable(drop_list);
+
+    for (var i = 0; i < item_container.rows.length; i++) {
+        item_container.rows[i].cells[0].isEmptyItem = false;
+        if (item_container.rows[i].cells[0].innerHTML == "") {
+            item_container.rows[i].cells[0].innerHTML = "&nbsp;";
+            item_container.rows[i].cells[0].isEmptyItem = true;
+        }
+    }
+
+}
+
+function ComboBox_getItemByIndex(_domObject, index) {
+    var drop_list = ComboBox_getDropList(_domObject);
+
+    var item_container = ComboBox_getTable(drop_list);
+
+    var item = item_container.rows[index];
+    if (item == null)
+        return null;
+
+    return {option: item, value: ComboItem_GetValue(item), caption: ComboItem_GetCaption(item)};
+}
+
+function ComboBox_getItemIndex(_domObject, option) {
+    var drop_list = ComboBox_getDropList(_domObject);
+
+    var item_container = ComboBox_getTable(drop_list);
+
+    for (var i = 0; i < item_container.rows.length; i++) {
+        if (item_container.rows[i] == option)
+            return i;
+    }
+    return null;
+}
+
+function ComboBox_getItemByValue(_domObject, _value) {
+    var drop_list = ComboBox_getDropList(_domObject);
+
+    var item_container = ComboBox_getTable(drop_list);
+
+    for (var i = 0; i < item_container.rows.length; i++) {
+        var item = item_container.rows[i];
+        if(item.hasAttribute('sample')){
+            continue;
+        }
+        if (ComboItem_GetValue(item) == _value){
+            return {option: item, value: ComboItem_GetValue(item), caption: ComboItem_GetCaption(item)};
+        }
+
+    }
+
+    return null;
+}
+
+function ComboBox_getItemStaticSelected(_domObject) {
+    var drop_list = ComboBox_getDropList(_domObject);
+
+    var item_container = ComboBox_getTable(drop_list);
+
+    var first_item = null;
+
+    for (var i = 0; i < item_container.rows.length; i++) {
+        var item = item_container.rows[i];
+
+        if (i == 0 && !hasProperty(item, 'clone'))
+            first_item = {option: item, value: ComboItem_GetValue(item), caption: ComboItem_GetCaption(item)};
+
+        if (hasProperty(item, 'selected'))
+            return {option: item, value: ComboItem_GetValue(item), caption: ComboItem_GetCaption(item)};
+    }
+
+    return first_item;
+}
+
+function ComboBox_getItemDataset(_domObject) {
+    var drop_list = ComboBox_getDropList(_domObject);
+
+    var item_container = ComboBox_getTable(drop_list);
+
+    for (var i = 0; i < item_container.rows.length; i++) {
+        var item = item_container.rows[i];
+
+        if (hasProperty(item, 'afterrefresh'))
+            return {option: item, value: ComboItem_GetValue(item), caption: ComboItem_GetCaption(item)};
+    }
+    return null;
+}
+function ComboBox_addTemplateItem(param) {
+    var table = document.createElement('table');
+    /*добавление строки*/
+    var r = table.insertRow(-1);
+    r.ComboItemChilds = [];
+    r.ComboItemParent = null;
+    r.setAttribute('cmptype', 'ComboItem');
+    /*добавление колонки*/
+    var c = r.insertCell(0);
+
+    var div = document.createElement('div');
+    div.classList.add('item_block');
+    c.appendChild(div);
+
+    /*добавление иерархического элемента*/
+    var sq = document.createElement('span');
+    sq.classList.add('btnOCM');
+
+    div.appendChild(sq);
+
+    /*добавление видимово элемента*/
+    var cptn = document.createElement('span');
+    cptn.setAttribute('cont', 'itemcaption')
+    div.appendChild(cptn);
+    if (param) {
+        if ('combo_box' in param && param['combo_box']) {
+            //добавить в конец комбобокса.
+            var drop_list = ComboBox_getDropList(param['combo_box']);
+            var item_container = ComboBox_getTable(drop_list);
+            var tbodies = item_container.tBodies;
+            if (tbodies.length > 0) {
+                tbodies[tbodies.length - 1].appendChild(r);
+            }else {
+                var tbody = document.createElement('tbody');
+                tbody.appendChild(r);
+                item_container.appendChild(tbody);
+            }
+        } else if ('afterItem' in param && param['afterItem']) {
+            //добавить после указанной.
+            var next = null;
+            //ищем след элемент, чтобы добавить перед ним.
+            for (next = param['afterItem'].nextSibling; next; next = next.nextSibling) {
+                if (next.nodeType == 1) {
+                    break
+                }
+            }
+            if (next) {
+                //след. элемент найден.
+                param['afterItem'].parentNode.insertBefore(r, next);
+            } else {
+                //след. элемент не найден, значит текущий элемент последний
+                param['afterItem'].parentNode.appendChild(r);
+            }
+        } else if ('beforeItem' in param && param['beforeItem']) {
+            //добавить перед указанной.
+            param['afterItem'].parentNode.insertBefore(r, param['beforeItem']);
+        } else if ('childItem' in param && param['childItem']) {
+            param['childItem'].appendChild(r);
+        }
+    }
+    return r;
+}
+function ComboBox_addIsNotItems(comboItem_box, value) {
+    if ('isnotadditems' in comboItem_box) {
+        for (var i = 0; i < comboItem_box.isnotadditems.length; i++) {
+            var row = comboItem_box.isnotadditems[i];
+        }
+    }
+}
+function ComboBox_addChildItem(combo_box, parent_id, caption, value, setEmptyValue) {
+    if (!('isnotadditems' in combo_box)) {
+        combo_box.isnotadditems = document.createDocumentFragment();
+    }
+    var drop_list = ComboBox_getDropList(combo_box);
+    var item_container = ComboBox_getTable(drop_list);
+    var rows = item_container.rows;
+    var isNotAdd = true;//система не добавила элемент т.к. не нашла его родителя
+    var row = null;
+    //ищем родителя. если есть то добавляем
+    for (var i = 0; i < rows.length; i++) {
+        if (!rows[i].hasAttribute('sample') && rows[i].hasAttribute('value')) {
+            var val = rows[i].getAttribute('value');
+
+            if (parent_id == val) {
+                var levelHierh = +rows[i].getAttribute('levelHierh') + 1;
+                //ищем самый последний дочерний элемент этого родителя по иерархии. и добавлем после него.
+                var item = rows[i];
+                for (; item.ComboItemChilds.length > 0;) {
+                    item = item.ComboItemChilds[item.ComboItemChilds.length - 1];
+                }
+                row = ComboBox_addTemplateItem({
+                    'afterItem': item
+                });
+
+                var chldrns = row.cells[0].children;
+                for (var j = 0; j < chldrns.length; j++) {
+                    if(chldrns[j].classList.contains('item_block')){
+                        chldrns[j].style.marginLeft = (10*levelHierh)+'px';
+                        break;
+                    }
+                }
+
+                row.setAttribute('levelHierh', levelHierh);
+                row.classList.add('nochilds');
+
+                rows[i].ComboItemChilds.push(row);
+                row.ComboItemParent = rows[i];
+                isNotAdd = false;
+                ComboBox_setOptions(combo_box);
+                if(rows[i].classList.contains('nochilds')){
+                    rows[i].classList.remove('nochilds');
+                    rows[i].classList.add('closed');
+                }
+
+                break;
+            }
+        }
+    }
+    if (isNotAdd) {
+        /*Система не добавила элемент. Нету его родителя. добавить в список не добавленных*/
+        /*посмотрим приходили ли ранее дочерние элементы у него. чтобы добавить перед ним.*/
+        for (var i = 0; i < combo_box.isnotadditems.children.length; i++) {
+            var frmnt_row = combo_box.isnotadditems.children[i];
+            if (frmnt_row.hasAttribute('parent_id')) {
+                var frmnt_row_parent_id = frmnt_row.getAttribute('parent_id');
+                if (frmnt_row_parent_id == value) {
+                    if (empty(row)) {
+                        /*нашлось первый дочерний элемент. добавим перед ним.*/
+                        row = ComboBox_addTemplateItem({
+                            'beforeItem': frmnt_row
+                        });
+                    }
+                    row.ComboItemChilds.push(frmnt_row);
+                    frmnt_row.ComboItemParent = row;
+                    if(row.classList.contains('nochilds')){
+                        row.classList.remove('nochilds');
+                        row.classList.add('closed');
+                    }
+                }
+            }
+        }
+        if (empty(row)) {
+            /*дочерний элемент не нашлась. добавим в конец фрагмента.*/
+            row = ComboBox_addTemplateItem({
+                'childItem': combo_box.isnotadditems
+            });
+            row.classList.add('nochilds');
+        }
+    }
+    row.setAttribute('value', (value) ? value : !!setEmptyValue ? '' : caption);
+    row.setAttribute('parent_id', parent_id);
+    var cell = row.cells[0];
+    var childs = cell.children;
+    for (var i = 0; i < childs.length; i++) {
+        if(childs[i].classList.contains('item_block')){
+            for (var j = 0; j < childs[i].children.length; j++) {
+                if (childs[i].children[j].hasAttribute('cont')) {
+                    childs[i].children[j].innerHTML = caption;
+                }
+            }
+        }
+    }
+    if (!isNotAdd) {
+        /*распределяем иерархию которые еще не были добавлены*/
+        var searchs = [];
+        searchs.push(row);
+        for (; searchs.length > 0;) {
+            var search = searchs[searchs.length - 1];
+            var keyfield = search.getAttribute('value');
+            var levelHierh = +search.getAttribute('levelHierh') + 1;
+            var isSearch = false;
+            for (var i = 0; i < combo_box.isnotadditems.children.length; i++) {
+                if (combo_box.isnotadditems.children[i].hasAttribute('parent_id')) {
+                    var prnt_id = combo_box.isnotadditems.children[i].getAttribute('parent_id');
+                    if (keyfield == prnt_id) {
+                        isSearch = true;
+                        searchs.push(combo_box.isnotadditems.children[i]);
+                        var next = null;
+                        for (next = search.nextSibling; next; next = next.nextSibling) {
+                            if (next.nodeType == 1) {
+                                if (next.hasAttribute('parent_id')) {
+                                    var prnt = next.getAttribute('parent_id');
+                                    if (prnt != keyfield) {
+                                        break;
+                                    }
+                                } else {
+                                    break;
+                                }
+                            }
+                        }
+                        combo_box.isnotadditems.children[i].setAttribute('levelHierh', levelHierh);
+                        combo_box.isnotadditems.children[i].classList.add('nochilds');
+
+
+                        var chldrns = combo_box.isnotadditems.children[i].cells[0].children;
+                        for (var j = 0; j < chldrns.length; j++) {
+                            if(chldrns[j].classList.contains('item_block')){
+                                chldrns[j].style.marginLeft = (10*levelHierh)+'px';
+                                break;
+                            }
+                        }
+                        search.ComboItemChilds.push(combo_box.isnotadditems.children[i]);
+                        combo_box.isnotadditems.children[i].ComboItemParent = search;
+                        if (next) {
+                            search.parentNode.insertBefore(combo_box.isnotadditems.children[i], next);
+                        } else {
+                            search.parentNode.appendChild(combo_box.isnotadditems.children[i]);
+                        }
+
+                        if(search.classList.contains('nochilds')){
+                            search.classList.remove('nochilds');
+                            search.classList.add('closed');
+                        }
+                        break;
+                    }
+                }
+            }
+            if (!isSearch) {
+                searchs.splice(searchs.length - 1, 1);
+            }
+        }
+    }
+    row.classList.add('hide');
+    return row;
+}
+/*
+ *  setEmptyValue = true  позволяет добавить item с value = ''
+ *  вместо value = caption
+ * */
+function ComboBox_addItem(combo_box, caption, value, setEmptyValue) {
+    var row = ComboBox_addTemplateItem({
+        'combo_box': combo_box
+    });
+    row.setAttribute('value', (value) ? value : !!setEmptyValue ? '' : caption);
+    var cell = row.cells[0];
+    var childs = cell.children;
+    for (var i = 0; i < childs.length; i++) {
+        if(childs[i].classList.contains('item_block')){
+            for (var j = 0; j < childs[i].children.length; j++) {
+                if (childs[i].children[j].hasAttribute('cont')) {
+                    childs[i].children[j].innerHTML = caption;
+                }
+            }
+        }
+    }
+    row.setAttribute('levelHierh', 1);
+    if (combo_box.hasAttribute('ishierh')) {
+        row.setAttribute('parent_id', '');
+        var drop_list = ComboBox_getDropList(combo_box);
+        var item_container = ComboBox_getTable(drop_list);
+        item_container.setAttribute('ishierh','true');
+        row.classList.add('nochilds');
+        /*посмотрим приходили ли ранее дочерние элементы у него*/
+        if ('isnotadditems' in combo_box) {
+            var searchs = [];
+            searchs.push(row);
+            for (; searchs.length > 0;) {
+                var search = searchs[searchs.length - 1];
+                var keyfield = search.getAttribute('value');
+                var levelHierh = +search.getAttribute('levelHierh') + 1;
+                var isSearch = false;
+                for (var i = 0; i < combo_box.isnotadditems.children.length; i++) {
+                    if (combo_box.isnotadditems.children[i].hasAttribute('parent_id')) {
+                        var parent_id = combo_box.isnotadditems.children[i].getAttribute('parent_id');
+                        if (keyfield == parent_id) {
+                            /*нашли дочерний элемент. перемешаем их списка в комбобокс.*/
+                            isSearch = true;
+                            searchs.push(combo_box.isnotadditems.children[i]);
+                            var next = null;
+                            for (next = search.nextSibling; next; next = next.nextSibling) {
+                                if (next.nodeType == 1) {
+                                    if (next.hasAttribute('parent_id')) {
+                                        var prnt = next.getAttribute('parent_id');
+                                        if (prnt != keyfield) {
+                                            break;
+                                        }
+                                    } else {
+                                        break;
+                                    }
+                                }
+                            }
+                            combo_box.isnotadditems.children[i].setAttribute('levelHierh', levelHierh);
+                            combo_box.isnotadditems.children[i].classList.add('nochilds');
+
+
+                            var chldrns = combo_box.isnotadditems.children[i].cells[0].children;
+                            for (var j = 0; j < chldrns.length; j++) {
+                                if(chldrns[j].classList.contains('item_block')){
+                                    chldrns[j].style.marginLeft = (10*levelHierh)+'px';
+                                    break;
+                                }
+                            }
+                            search.ComboItemChilds.push(combo_box.isnotadditems.children[i]);
+                            combo_box.isnotadditems.children[i].ComboItemParent = search;
+                            if (next) {
+                                search.parentNode.insertBefore(combo_box.isnotadditems.children[i], next);
+                            } else {
+                                search.parentNode.appendChild(combo_box.isnotadditems.children[i])
+                            }
+
+                            if(search.classList.contains('nochilds')){
+                                search.classList.remove('nochilds');
+                                search.classList.add('closed');
+                            }
+                            break;
+                        }
+                    }
+                }
+                if (!isSearch) {
+                    searchs.splice(searchs.length - 1, 1);
+                }
+            }
+        }
+    }
+    ComboBox_setOptions(combo_box);
+    return row;
+}
+function ComboBox_deleteItem(combo_box,itemDom)
+{
+    removeDomObject(itemDom);
+    ComboBox_setOptions(combo_box);
+}
+function ComboBox_clearItems(combo_box,param) {
+    var drop_list = ComboBox_getDropList(combo_box);
+
+    var item_container = ComboBox_getTable(drop_list);
+    for (var i = item_container.rows.length - 1; 0 <= i; i--) {
+        if (!item_container.rows[i].hasAttribute('sample')) {
+            var del = true;
+            if(param){
+                var attrs = item_container.rows[i].attributes;
+                for(var _name in param){
+                    if(param.hasOwnProperty(_name)){
+                        if(!(_name in attrs) || attrs[_name].value != param[_name]){
+                            del = false;
+                            break;
+                        }
+                    }
+                }
+            }
+            if(del){
+                item_container.deleteRow(i);
+            }
+        }
+    }
+    ComboBox_SetCaption(combo_box, '', false, true);
+    combo_box.setAttribute('keyvalue', '');
+    combo_box.selected_item = null;
+}
+function ComboBox_getTable(drop_list) {
+    var child = drop_list.children;
+    var item_container;
+    for (var i = 0, child; item_container = child[i]; i++) {
+        if (item_container.nodeType === 1) {
+            return item_container;
+        }
+    }
+}
+function ComboBox_setItemSelected(combo_box,option,onchange_call) {
+    if (option && hasProperty(option, 'sample')) {
+        option = undefined;
+    }
+    var old_caption = ComboItem_GetCaption(combo_box["selected_item"]);
+    combo_box.setAttribute('keyvalue', (option) ? ComboItem_GetValue(option) : '');
+
+    if (combo_box["selected_item"])
+        combo_box["selected_item"].classList.remove("combo-item-selected");
+
+    if (option)
+        option.classList.add("combo-item-selected");
+
+    combo_box["selected_item"] = option;
+
+    combo_box.selectedIndex = (option) ? option.rowIndex : -1;
+
+    var new_caption = ComboBox_GetCaption(combo_box);
+    ComboBox_SetCaption(combo_box, (option) ? ComboItem_GetCaption(option) : ((old_caption == new_caption) ? '' : new_caption), onchange_call, true);
+
+    if (getProperty(combo_box, 'focus')=='false') {
+        var input = ComboBox_getInput(combo_box);
+        input.setSelectionRange(0, 0);
+    }
+}
+function ComboBox_markedItemSelected(combo_box,option) {
+    if (combo_box["selected_item"]) {
+        combo_box["selected_item"].classList.remove("combo-item-selected");
+        combo_box.selectedIndex = -1;
+        combo_box["selected_item"] = undefined;
+    }
+    if (!option || !option.classList || !option.classList.add) {
+        return;
+    }
+    option.classList.add("combo-item-selected");
+
+    combo_box["selected_item"] = option;
+}
+
+function ComboBox_getDropList(_domObject) {
+    if (getProperty(_domObject, 'cmptype', null) != 'ComboBox') {
+        _domObject = ComboBox_getControl(_domObject);
+    }
+
+    if (_domObject._droplistDom) {
+        return _domObject._droplistDom;
+
+    }
+    for (var i = 0; i < _domObject.rows.length; i++) {
+        for (var j = 0; j < _domObject.rows[i].cells.length; j++) {
+            if (hasClass(_domObject.rows[i].cells[j], 'cmbb-droplist')) {
+                _domObject._droplistDom = getChildTag(_domObject.rows[i].cells[j], 'div', 0);
+                _domObject._dropListCont = _domObject._droplistDom.parentNode;
+                _domObject._droplistDom._ComboBoxDom = _domObject;
+                return _domObject._droplistDom;
+            }
+        }
+    }
+    return false;
+}
+function ComboBox_KeyUpInput(event,_input) {
+
+    event = getEvent(event);
+
+    var combo_box = ComboBox_getControl(_input);
+
+    var limit = ComboBox_GetLimit(combo_box);
+    if (!empty(limit))
+        if (_input.value.length > limit)
+            _input.value = _input.value.substr(0, limit);
+
+    var img = ComboBox_getImg(combo_box);
+
+    if (img.className.search("\\bcombo-box-disable\\b") + 1 || !combo_box.options) {
+        return;
+    }
+
+    if (combo_box.lastValue != _input.value) {
+        combo_box.lastValue = _input.value;
+    } else
+        return;
+
+    //37 left
+    //38 top
+    //39 right
+    //40 down
+    //115 F4
+    //13 enter
+    //9 tab
+    switch (event.keyCode) {
+        case 37:
+        case 38:
+        case 39:
+        case 40:
+        case 115:
+        case 13:
+        case 9:
+        case 27:
+            break;
+        default:
+            ComboBox_refreshInputModeValue(combo_box, _input);
+            break;
+    }
+}
+function ComboBox_KeyDownInput(event,_input) {
+    event = event || window.event;
+
+    var delta = 0;
+    var combo_box = ComboBox_getControl(_input);
+
+    var img = ComboBox_getImg(combo_box);
+
+    if (img.className.search("\\bcombo-box-disable\\b") + 1 || !combo_box.options) {
+        return;
+    }
+    var drop_list = ComboBox_getDropList(combo_box);
+    //38 up
+    //40 down
+    //115 F4
+    //13 enter
+    //9 tab
+    switch (event.keyCode) {
+        case 38:
+            delta = -1;
+            break;
+        case 40:
+            delta = 1;
+            break;
+        case 115:
+            if (drop_list.style.display != 'block') {
+                ComboBox_DownClick(_input);
+            } else {
+                ComboBox_HideDropList(drop_list);
+                removeEvent(document, "mousedown", combo_box.functionHook, true);
+                //stopEvent(event);
+            }
+            return;
+        case 13:
+            if (getProperty(combo_box, 'anyvalue', 'false') != 'false') {
+                combo_box.lastAnyValue = _input.value;
+            }
+            if (combo_box["selected_item"] && combo_box.selectedIndex != combo_box["selected_item"].rowIndex) {
+                var selectedItem = combo_box["selected_item"];
+                if (getProperty(selectedItem, 'noselectparent', 'false') === 'true' && selectedItem.ComboItemChilds.length > 0) {
+                    return true;
+                }
+                ComboBox_setItemSelected(combo_box, selectedItem, true);
+                var value = ComboItem_GetValue(selectedItem);
+
+                var l_ControlName = getProperty(combo_box, 'name', '');
+                getPageByDom(combo_box).dispatchEvent('onchangeproperty' + l_ControlName, combo_box, l_ControlName, 'value', value);
+            }
+            if (drop_list.style.display == 'block') {
+                var option = !combo_box["selected_item"] ? undefined : combo_box.options[combo_box["selected_item"].rowIndex];
+                if (option) {
+                    _input.value = ComboItem_GetCaption(option);
+                } else if (getProperty(combo_box, 'anyvalue', 'false') != 'false') {
+                    ComboBox_SetValue(combo_box, undefined);
+                } else if (getProperty(combo_box, 'setTabValue', 'false') != 'false') {
+                    _input.value = combo_box.modeValues.old_selectedValue;
+                }
+
+
+                ComboBox_HideDropList(drop_list);
+            }
+            //stopEvent(event);
+            return;
+        case 27:
+        case 9:
+            if (drop_list.style.display == 'block') {
+                ComboBox_HideDropList(drop_list);
+                removeEvent(document, "mousedown", combo_box.functionHook, true);
+                event.stopPropagation();
+            }
+            break;
+        default:
+            return;
+    }
+    var new_index = combo_box["selected_item"].rowIndex + delta;
+    while (new_index >= 0 && combo_box.options[new_index] && combo_box.options[new_index].style.display == 'none')
+        new_index = new_index + delta;
+    if (new_index < 0 || new_index > combo_box.options.length - 1)
+        return;
+
+    var option = combo_box.options[new_index];
+    if (!option || hasProperty(option, 'sample'))
+        return;
+
+    if (drop_list.style.display == 'none') {
+        _input.value = ComboItem_GetCaption(option);
+        if (combo_box["selected_item"] && combo_box.selectedIndex != combo_box["selected_item"].rowIndex) {
+            ComboBox_setItemSelected(combo_box, combo_box["selected_item"], true);
+            var value = ComboItem_GetValue(combo_box["selected_item"]);
+
+            var l_ControlName = getProperty(combo_box, 'name', '');
+            getPageByDom(combo_box).dispatchEvent('onchangeproperty' + l_ControlName, combo_box, l_ControlName, 'value', value);
+        }
+        ComboBox_setItemSelected(combo_box, option, true);
+        return;
+    }
+
+    ComboBox_markedItemSelected(combo_box, option);
+
+}
+function ComboBox_HideDropList(drop_list,only) {
+    if (drop_list.style.display != 'none') {
+        drop_list.style.display = 'none';
+        drop_list._ComboBoxDom._dropListCont.appendChild(drop_list);
+        if (!only)
+            ComboBox_setInputModeValue(drop_list._ComboBoxDom);
+    }
+}
+function ComboBox_ShowDropList(drop_list,only) {
+    if (SYS_current_theme === 'new') {
+        var _container = getPageByDom(drop_list).form.containerForm;
+        _container.appendChild(drop_list);
+    } else {
+        document.body.appendChild(drop_list);
+    }
+
+    drop_list.style.display = 'block';
+    if (!only)
+        ComboBox_prepareInputMode(drop_list._ComboBoxDom);
+}
+function ComboBox_prepareInputMode(combo_box,input,refresh) {
+    if (!input)
+        input = ComboBox_getInput(combo_box);
+
+    var mode = (combo_box.mode) ? combo_box.mode : getProperty(combo_box, 'mode', 'filter');
+    combo_box.mode = mode;
+    combo_box.modeValues = {};
+    combo_box.modeValues['old_value'] = input.value;
+    combo_box.modeValues['old_readonly'] = getProperty(input, 'readonly', 'false');
+    combo_box.modeValues['old_selectedValue'] = ComboBox_GetValue(combo_box);
+
+    var set_focus = getProperty(combo_box, 'focus', 'true');
+
+    switch (mode) {
+        //Скрываем записи, которые не подходят по фильтру
+        case 'filter':
+            if (!refresh) {
+                (set_focus !== 'false') ? input.focus() : '';
+                (set_focus !== 'false') ? input.select() : '';
+            }
+            input.removeAttribute('readonly');
+            combo_box.modeValues['case'] = getProperty(combo_box, 'case', 'false');
+            break;
+        default:
+            break;
+    }
+}
+function ComboBox_setInputModeValue(combo_box,input) {
+
+    for (var i = 0; i < combo_box.options.length; i++) {
+        if (!getProperty(combo_box.options[i], 'sample', false))
+            combo_box.options[i].style.display = '';
+    }
+    if (!input)
+        input = ComboBox_getInput(combo_box);
+    if (combo_box.modeValues['old_readonly'] != 'false')
+        input.setAttribute('readonly', 'true');
+
+    var new_value = ComboBox_GetValue(combo_box);
+
+    switch (combo_box.mode) {
+        //Скрываем записи, которые не подходят по фильтру
+        case 'filter':
+            //Принудительно устанавливаем старое значение, чтобы затереть изменения в инпуте
+            if (new_value == combo_box.modeValues['old_selectedValue']) {
+                if (!getProperty(combo_box, 'anyvalue') && !getProperty(combo_box, 'setTabValue', false)) {
+                    ComboBox_SetValue(combo_box, combo_box.modeValues['old_selectedValue']);
+                }
+            }
+            break;
+    }
+}
+function ComboBox_refreshInputModeValue(combo_box,input) {
+    if (!input)
+        input = ComboBox_getInput(combo_box);
+
+    if (combo_box.hasOwnProperty("modeValues") && combo_box.modeValues['old_value'] != input.value) {
+        switch (combo_box.mode) {
+            //Скрываем записи, которые не подходят по фильтру
+            case 'filter':
+                try {
+                    var s = input.value;
+                    //Если сначала палка то это регулярное выражение не надо экранировать
+                    if (s[0] != '|') {
+                        //Заменяем
+
+                        s = s.replace(/([\\\*\+\?\.\$\{\}\[\]\(\)])/g, '\\$1');
+                        s = s.replace(/%/g, '.*?');
+                        s = s.replace(/_/g, '.');
+                        //s= '^'+s;
+                    } else
+                        s = s.substr(1);
+                    var re = new RegExp(s, (combo_box.modeValues['case'] == 'false') ? 'i' : '');
+                } catch (e) {
+                    var re = new String(input.value);
+                }
+                var first_option = false;
+                for (var i = 0; i < combo_box.options.length; i++) {
+                    if (ComboItem_GetCaption(combo_box.options[i]).search(re) != -1 && !getProperty(combo_box.options[i], 'sample', false)) {
+                        for(var current_item = combo_box.options[i],j = 0;current_item;current_item = current_item.ComboItemParent,j++){
+                            if(current_item.classList.contains('hide')){
+                                current_item.classList.remove('hide');
+                            }
+                            if(current_item.classList.contains('closed')){
+                                if(j > 0){
+                                    current_item.classList.remove('closed');
+                                    current_item.classList.add('opened');
+                                }
+                            }
+                            current_item.style.display = '';
+                            if(!('ComboItemParent' in current_item) || !current_item.ComboItemParent){
+                                break;
+                            }
+                        }
+                        if (!first_option)
+                            first_option = combo_box.options[i];
+
+                    } else
+                        combo_box.options[i].style.display = 'none';
+                }
+                ComboBox_markedItemSelected(combo_box, first_option);
+                ComboBox_DropListSetSizePos(ComboBox_getDropList(combo_box));
+                break;
+        }
+        combo_box.modeValues['old_value'] = input.value;
+    }
+
+
+}
+function ComboBox_toggleItems(_item,_bool){
+    if(!_item.classList.contains('nochilds')){
+        var child_items = _item.ComboItemChilds;
+        if(_bool){
+            _item.classList.remove('closed');
+            _item.classList.add('opened');
+        }else{
+            _item.classList.remove('opened');
+            _item.classList.add('closed');
+        }
+        for(var i = 0 ; i < child_items.length ; i++){
+            if(_bool){
+                //раскрыть дочерние
+                child_items[i].classList.remove('hide');
+            }else {
+                child_items[i].classList.add('hide');
+                ComboBox_toggleItems(child_items[i],_bool);
+                //скрыть все дочерние
+            }
+        }
+    }
+}
+function ComboBox_DownClick(_domObject) {
+    //if (BROWSER.ie)
+    //	stopEvent();
+    var combo_box = ComboBox_getControl(_domObject);
+
+    var val = getControlValue(combo_box);
+    var img = ComboBox_getImg(combo_box);
+
+    if (img.className.search("\\bcombo-box-disable\\b") + 1 || !combo_box.options)
+        return;
+
+    var drop_list = ComboBox_getDropList(combo_box);
+
+    var hook = throttle(function(e) {
+        var target = e.target;
+        if (target.tagName !== 'INPUT' // Фикс для ff: срабатывание скролла при вводе в input'e
+            && (target.classList && !target.classList.contains('combo-box-drop-list'))
+            || target === document) {
+            ComboBox_HideDropList(drop_list);
+            removeEvent(document, "mousedown", combo_box.functionHook, true);
+            removeEvent(document, "scroll", hook, true);
+        }
+    });
+    combo_box["functionHook"] = function (event) {
+        //Если false значит вне списка, закрываем текущий список
+        var target = event.srcElement || event.target;
+        var comboItem = null;
+        var isRemoveEvent = true;
+        if (target) {
+            //В область списка, но не по значению
+            if (hasClass(target, 'combo-box-drop-list'))
+                return;
+            if (target == _domObject) {
+                ComboBox_HideDropList(drop_list);
+                removeEvent(document, "mousedown", combo_box.functionHook, true);
+                stopEvent(event);
+                return;
+            }
+            if (ComboItem_getControl(target)) {
+                comboItem = ComboItem_getControl(target);
+                if (getProperty(comboItem, 'enabled') === 'false') {
+                    stopEvent(event);
+                    return;
+                }
+            }
+        }
+        if(event.target.classList.contains('btnOCM') && target && comboItem && 'ComboItemChilds' in comboItem){
+            var isClosed = comboItem.classList.contains('closed');
+            ComboBox_toggleItems(comboItem,isClosed);
+            ComboBox_DropListSetSizePos(drop_list);
+            isRemoveEvent = false;
+        }else if (ComboBox_DropListClick(event) == false) {
+            if (getProperty(combo_box, 'anyvalue')) {
+                var activeCaption = ComboItem_GetCaption(combo_box["selected_item"]),
+                    comboValue = ComboBox_GetCaption(combo_box);
+                ComboBox_SetValue(combo_box, activeCaption == comboValue ? ComboItem_GetValue(combo_box["selected_item"]) : null);
+            }
+            ComboBox_HideDropList(drop_list);
+        } else {
+            isRemoveEvent = false;
+        }
+        if(isRemoveEvent){
+            removeEvent(document, "mousedown", combo_box.functionHook, true);
+        }
+    }
+
+    if (drop_list.style.display != 'block') {
+        var option = null;
+        var options = combo_box.options;
+        for(var i = 0 ; i < options.length; i++){
+            var isRoot = !(options[i].hasAttribute('parent_id') && options[i].getAttribute('parent_id'));
+            //отображаем только родители
+            if(isRoot){
+                options[i].classList.remove('hide')
+            }else{
+                options[i].classList.add('hide')
+            }
+            if('ComboItemChilds' in options[i] && options[i].ComboItemChilds.length > 0){
+                options[i].classList.remove('nochilds');
+                options[i].classList.remove('opened');
+                options[i].classList.add('closed');
+            }else{
+                options[i].classList.remove('opened');
+                options[i].classList.remove('closed');
+                options[i].classList.add('nochilds');
+            }
+            if(empty(option)){
+                if(options[i].hasAttribute('value') && options[i].getAttribute('value') == val && !options[i].hasAttribute('sample')){
+                    option = options[i];
+                }
+            }
+        }
+        //расскрываем иерархически все родителей текущего элемента.
+        if(!empty(option)){
+            for(var parent = option.ComboItemParent;parent != null;parent = parent.ComboItemParent){
+                parent.classList.remove('hide');
+                if(parent.ComboItemChilds.length > 0){
+                    parent.classList.remove('nochilds');
+                    parent.classList.remove('closed');
+                    parent.classList.add('opened');
+                    for(var i = 0; i < parent.ComboItemChilds.length ; i++){
+                        parent.ComboItemChilds[i].classList.remove('hide');
+                    }
+                }else{
+                    parent.classList.remove('opened');
+                    parent.classList.remove('closed');
+                    parent.classList.add('nochilds');
+                }
+            }
+        }
+
+        if (getProperty(combo_box, 'openedparent', 'false') === 'true') {
+            for (var i = 0; i < combo_box.options.length; i++) {
+                var comboItem = combo_box.options[i];
+                if (getProperty(comboItem, 'openedparent', 'false') === 'true' && comboItem && 'ComboItemChilds' in comboItem) {
+                    ComboBox_toggleItems(comboItem, true);
+                }
+            }
+        }
+
+        ComboBox_DropListSetSizePos(drop_list);
+
+        ComboBox_ShowDropList(drop_list);
+
+        addEvent(document, "mousedown", combo_box.functionHook, true);
+        addEvent(document, "scroll", hook, true);
+
+        var input = ComboBox_getInput(combo_box);
+        if (input.focus) input.focus();
+    } else {
+        ComboBox_HideDropList(drop_list);
+    }
+
+}
+function ComboBox_DropListSetSizePos(drop_list) {
+    var sX = getBodyScrollLeft();
+    var sY = getBodyScrollTop();
+
+    var page = GetPageWindowSize();
+
+    drop_list.style["minWidth"] = (drop_list._ComboBoxDom.offsetWidth - 2) + "px";
+    drop_list.style["width"] = 'auto';
+
+    var cb_rect = getAbsoluteClientRect(drop_list._ComboBoxDom);
+
+    drop_list.style.height = "";
+
+    ComboBox_ShowDropList(drop_list, true);
+
+    var drop_rect = getAbsoluteClientRect(drop_list);
+
+    if (drop_rect.width > 360) { // 760 - это ~23см, требование из задачи #225600
+        drop_rect.width = 360;
+    }
+
+    drop_rect.x = cb_rect.x;
+    drop_rect.y = cb_rect.y + cb_rect.height;
+
+    var h = page.windowHeight + sY;
+    var w = page.windowWidth + sX;
+
+    //Растояние внизу окна
+    var dH = h - drop_rect.y;
+    //Растояние вверху окна
+    var uH = cb_rect.y - sY;
+
+    var mcY = drop_rect.y + drop_rect.height;
+    var mcX = drop_rect.x + drop_rect.width;
+
+    if (mcY - h > 0) {
+        //Если выходит за нижний край
+        if (dH > uH)
+            drop_rect.height = dH - 1;
+        else {
+            if (drop_rect.height > uH)
+                drop_rect.height = uH;
+            drop_rect.y -= drop_rect.height + cb_rect.height;
+        }
+
+    }
+
+    if (mcX - w > 0)
+        drop_rect.x -= mcX - w;
+
+    drop_list.style.height = drop_rect.height + 'px';
+    drop_list.style.width = drop_rect.width + 'px';
+
+    drop_list.style.left = drop_rect.x + 'px';
+    drop_list.style.top = drop_rect.y + 'px';
+}
+function refreshComboBox(dom,args) {
+    if (dom.hasAttribute('parent') && dom.hasAttribute('datafield') && dom.hasAttribute('captionfield')) {
+        var datafield = dom.getAttribute('datafield');
+        var captionfield = dom.getAttribute('captionfield');
+        var parentfield = dom.getAttribute('parent');
+        var sampleUid = dom.getAttribute('sampleuid');
+        // Добавлен новый параметр noselectparent в ComboItem: true - нельзя выбрать корневой элемент, false - можно выбрать корневой элемент
+        var noSelectParent = getProperty(dom, 'noselectparent', 'false');
+        var openedParent = getProperty(dom, 'openedparent', 'false');
+        var _data = args[0];
+        var page = getPageByDom(dom);
+        var combobox_name = dom.getAttribute('comboboxname');
+        var combo_box = page.getControlByName(combobox_name);
+        combo_box.setAttribute('ishierh', 'true');
+        combo_box.setAttribute('openedparent', openedParent);
+        ComboBox_clearItems(combo_box,{
+            sampleuid:sampleUid
+        });
+
+        for (var i = 0; i < _data.length; i++) {
+            var row = null;
+            if (empty(parentfield) || empty(_data[i][parentfield])) {
+                row = ComboBox_addItem(combo_box, _data[i][captionfield], _data[i][datafield]);
+            } else {
+                row = ComboBox_addChildItem(combo_box, _data[i][parentfield], _data[i][captionfield], _data[i][datafield])
+            }
+            if(row){
+                row.setAttribute('sampleuid',sampleUid);
+                // Добавляем атрибут noselectparent в сформированную строку
+                row.setAttribute('noselectparent' , noSelectParent);
+                row.setAttribute('openedparent' , openedParent);
+            }
+        }
+        if (combo_box.options.length > 0) {
+            ComboBox_setItemSelected(combo_box, combo_box.options[0]);
+            ComboBox_prepareInputMode(combo_box, undefined, true);
+        }
+    }
+}
+function ComboBox_DropListClick(event) {
+    event = event || window.event;
+
+    var option = event.target || event.srcElement;
+
+    option = ComboItem_getControl(option);
+
+    //Не нашли элемент списка значит кликнули вне списка
+    if (option == false)
+        return false;
+
+    // Добавлен новый параметр noselectparent в ComboItem: true - нельзя выбрать корневой элемент, false - можно выбрать корневой элемент
+    if (getProperty(option, 'noselectparent', 'false') === 'true' && option.ComboItemChilds.length > 0) {
+        return true;
+    }
+
+    var combo_box = ComboBox_getControl(option);
+    var drop_list = ComboBox_getDropList(option);
+
+    var input = ComboBox_getInput(combo_box);
+    if (input.focus)
+        input.focus();
+    if (input.blur)
+        input.blur();
+
+    if (!combo_box["selected_item"] || combo_box.selectedIndex != option.rowIndex) {
+        ComboBox_setItemSelected(combo_box, option, true);
+
+        var value = ComboItem_GetValue(option);
+
+        var l_ControlName = getProperty(combo_box, 'name', '');
+        getPageByDom(combo_box).dispatchEvent('onchangeproperty' + l_ControlName, combo_box, l_ControlName, 'value', value);
+    } else if (combo_box.selectedIndex == option.rowIndex) {
+        input.value = ComboItem_GetCaption(option);
+    }
+
+    ComboBox_HideDropList(drop_list);
+
+    return true;
+}
+
+function ComboBox_SetVisible(_domObject,_visible){
+    _domObject.style.display=(_visible)?'':'none';
+}
+function ComboBox_GetVisible(_domObject){
+    return _domObject.style.display!='none';
+}
+function ComboBox_SetFocus(_domObject,_focus){
+    _domObject.setAttribute('focus', _focus);
+}
+function ComboBox_GetFocus(_domObject) {
+    if (getProperty(_domObject, 'focus') == 'false')
+        return false;
+    else if (getProperty(_domObject, 'focus') == 'true')
+        return true;
+    else
+        return true;
+}
+
+function ComboBox_SetValue(_domObject,_value) {
+    if (_value == undefined) {
+        if (getProperty(_domObject, 'anyvalue', 'false') == 'false')
+            return false;
+
+        ComboBox_setItemSelected(_domObject, undefined);
+        return true;
+    }
+
+    var item = ComboBox_getItemByValue(_domObject, _value);
+
+    if (item == null) {
+        if (_domObject.options == undefined)
+            _domObject.storedValue = _value;
+        item = ComboBox_getItemByIndex(_domObject, 0);
+        if (item == null){
+            return false;
+        }
+
+        ComboBox_setItemSelected(_domObject, item.option);
+        return false;
+    }
+
+    ComboBox_setItemSelected(_domObject, item.option);
+
+}
+
+function ComboBox_GetValue(_domObject) {
+    var _value = null;
+
+    if (_domObject.storedValue != undefined)
+        return _domObject.storedValue;
+    _value = getProperty(_domObject, 'keyvalue', '');
+
+    return _value;
+}
+
+function ComboBox_GetCaption(_domObject)
+{
+    return ComboBox_getInput(_domObject).value;
+}
+
+function ComboBox_SetCaption(_domObject, _value, onchange_call, in_call) {
+    if (!in_call) {
+        //Внутренний вызов
+        //Проверить есть ли такое значение
+        if (!empty(_domObject.options))
+            var c = _domObject.options.length;
+        var haveOpt = null;
+        for (var o = 0; o < c; o++) {
+            if (ComboItem_GetCaption(_domObject.options[o]) == _value) {
+                haveOpt = _domObject.options[o];
+                break;
+            }
+        }
+        if (!haveOpt) {
+            if (getProperty(_domObject, 'anyvalue', 'false') == 'false')
+                return false;
+
+            var _input = ComboBox_getInput(_domObject);
+            _input.value = _value;
+        }
+        ComboBox_setItemSelected(_domObject, haveOpt, onchange_call);
+        return true;
+    }
+
+    _domObject.value = _value;
+    var _input = ComboBox_getInput(_domObject);
+    _input.value = _value;
+
+
+    if (onchange_call == true) {
+        execDomEvent(_domObject, 'onchange');
+    } else if (in_call) {
+        var l_ControlName = getProperty(_domObject, 'name', '');
+        getPageByDom(_domObject).dispatchEvent('onchangeproperty' + l_ControlName, _domObject, l_ControlName, 'caption', _value);
+        getPageByDom(_domObject).dispatchEvent('onchangeproperty' + l_ControlName, _domObject, l_ControlName, 'keyvalue', getProperty(_domObject, 'keyvalue', ''));
+    }
+}
+
+function ComboBox_onExit(_dom) {
+    if (_getControlProperty(ComboBox_getControl(_dom), 'enabled')) {
+        ComboBox_Validate(ComboBox_getControl(_dom));
+    }
+}
+
+function ComboBox_Validate(_dom) {
+    $$(_dom);
+    var _obj = ComboBox_getInput(_dom);
+    var name = getProperty(_dom, 'name', null);
+    var _action_name = getProperty(_dom, 'validateaction', null);
+    if (_action_name && getControlCaption(_dom)) {
+        executeAction(_action_name, function () {
+            if (_getControlProperty(_dom, 'enabled')) {
+                setControlProperty(name, 'color', '');
+                UnitEdit_Valid(_dom, true);
+            }
+        }, function () {
+            if (_getControlProperty(_dom, 'enabled')) {
+                UnitEdit_Valid(_dom, false);
+                setControlProperty(name, 'color', 'red');
+            }
+        }, _obj);
+    } else {
+        if (_action_name && getControlCaption(_dom) == '') {
+            setValue(name, null);
+            setControlProperty(name, 'color', '');
+            UnitEdit_Valid(_dom, true);
+        }
+    }
+    _$$();
+}
+
+function ComboBox_SetEnabled(_dom, _state /*true/false типа boolean!!!*/) {
+    if (_getControlProperty(_dom, 'enabled') != _state) {
+        var _text = ComboBox_getInput(_dom);
+        var _button = ComboBox_getImg(_dom);
+        var _css = getProperty(_dom, 'cssstyle', null);
+        var _addClass = getProperty(_dom, 'addclass', null);
+        //делаем активным
+        if (_state) {
+            _text.removeAttribute('readonly');
+            _text.className = 'input-ctrl';
+            _button.className = _css + ' ' + _css + '-enable';
+            _dom.className = _css + ' ' + _css + '-enable';
+            addClass(_dom, _addClass);
+            _dom.setAttribute('enabled', 'true');
+            ComboBox_SetReadonly(_dom, _dom.readonly_old);
+        }//делаем неактивным
+        else {
+            _dom.readonly_old = ComboBox_GetReadonly(_dom);
+            _text.setAttribute('readonly', 'true');
+            _text.className = 'input-ctrl disable';
+            _button.className = _css + ' ' + _css + '-disable';
+            _dom.className = _css + ' ' + _css + '-disable';
+            addClass(_dom, _addClass);
+            _dom.setAttribute('enabled', 'false');
+        }
+    }
+}
+
+function ComboBox_SetReadonly(_dom, _state/*boolean*/) {
+    var _text = ComboBox_getInput(_dom);
+    if (_state){
+        _text.setAttribute('readonly', 'true');
+    }
+    else{
+        _text.removeAttribute('readonly');
+    }
+}
+
+function ComboBox_GetReadonly(_dom) {
+    if (hasProperty(ComboBox_getInput(_dom), 'readonly')){
+        return true;
+    }
+    else {
+        return false;
+    }
+}
+
+function ComboBox_SetColor(_dom, _color) {
+    ComboBox_getInput(_dom).style.backgroundColor = _color;
+}
+
+function ComboBox_GetColor(_dom) {
+    return ComboBox_getInput(_dom).style.backgroundColor;
+}
+
+/**
+ *
+ * @param combo_box - контрол
+ * @param dataArray - ассоциативный массив вида {caption1:value1, caption2:value2...}
+ * @param selectedItemValue опционально
+ * @param withAllItem опционально
+ */
+function ComboBox_FillByObject(combo_box, dataArray, selectedItemValue, withAllItem) {
+    ComboBox_clearItems(combo_box);
+
+    if (!empty(withAllItem)) {
+        ComboBox_addItem(combo_box, 'Все', '', true);
+    }
+
+    if (!empty(dataArray) && typeof dataArray === 'object') {
+        for (caption in dataArray) {
+            ComboBox_addItem(combo_box, caption, dataArray[caption]);
+        }
+    }
+
+    if ((!empty(selectedItemValue) || withAllItem) && ComboBox_getItemByValue(combo_box, selectedItemValue).option) {
+        ComboBox_setItemSelected(combo_box, ComboBox_getItemByValue(combo_box, selectedItemValue).option);
+    }
+}
+//ComboItem----------------------------------------------------
+function ComboItem_SetValue(_domObject,_value) {
+    _domObject.setAttribute('value', _value);
+}
+
+function ComboItem_GetValue(_domObject) {
+    if (!_domObject)
+        return '';
+    return getProperty(_domObject, 'value', '');
+}
+
+function ComboItem_SetCaption(_domObject,_value) {
+    if (_value != undefined) {
+        var childs = _domObject.cells[0].children;
+        for (var i = 0; i < childs.length; i++) {
+            if(childs[i].classList.contains('item_block')){
+                for(var j = 0; i < childs[i].children.length ; j++){
+                    if (childs[i].children[j].hasAttribute('cont') && childs[i].children[j].getAttribute('cont') == 'itemcaption') {
+                        childs[i].children[j].innerHTML = _value;
+                        return;
+                    }
+                }
+            }
+        }
+    }
+}
+
+function ComboItem_GetCaption(_domObject) {
+    if (!_domObject)
+        return '';
+    var cell = _domObject.cells[0];
+    if ('isEmptyItem' in cell && cell.isEmptyItem) {
+        return '';
+    }
+    var childs = cell.children;
+    var caption = '';
+    for (var i = 0; i < childs.length; i++) {
+        if(childs[i].classList.contains('item_block')){
+            for(var j = 0; i < childs[i].children.length ; j++){
+                if (childs[i].children[j].hasAttribute('cont') && childs[i].children[j].getAttribute('cont') == 'itemcaption') {
+                    caption = childs[i].children[j].innerHTML;
+                    break ;
+                }
+            }
+        }
+    }
+    return caption.replace(/(&nbsp;)/g, ' ')
+        .replace(/(&lt;)/g, '<')
+        .replace(/(&gt;)/g, '>');
+}
+
+function ComboItem_onClone(_dataArray)
+{
+    return;
+}
+
+function ComboItem_onPostClone(_clone,_dataArray)
+{
+    return;
+}
+
+function ComboItem_getControl(_domObject) {
+    var parent_ctrl = _domObject;
+    var i = 0;
+    while (getProperty(parent_ctrl, 'cmptype', null) != 'ComboItem') {
+        if (parent_ctrl.nodeName == "HTML" || i > 10)
+            return false;
+        parent_ctrl = parent_ctrl.parentNode;
+        i++;
+    }
+    return parent_ctrl;
+}
+
+function ComboItem_SetEnabled(_domObject, enable) {
+    if (enable) {
+        _domObject.setAttribute('enabled', 'true');
+        _domObject.classList.remove('combo-item-disabled');
+    } else {
+        _domObject.setAttribute('enabled', 'false');
+        _domObject.classList.add('combo-item-disabled');
+    }
+}
+
+function ComboItem_GetEnabled(_domObject) {
+    return _domObject.getAttribute('enabled');
+}
+
+function ComboBox_GetLimit(_domObject)
+{
+    return getProperty(_domObject, 'limit');
+}
+
+function ComboItem_SetOpenedParent(_domObject, opened) {
+    _domObject.setAttribute('openedparent', opened);
+}
+
+function ComboItem_GetOpenedParent(_domObject) {
+    return _domObject.getAttribute('openedparent');
+}

@@ -1,0 +1,418 @@
+function RangeShow(_domObject,_ds_count_rows) {
+    _domObject.setAttribute('row_count', _ds_count_rows);
+    // считывание/установка обязательных атрибутов отражающих состояние компонента
+    if (!hasProperty(_domObject, 'page_number')) {
+        _domObject.setAttribute('page_number', 1);
+    }
+
+    if (!hasProperty(_domObject, 'count')) {
+        _domObject.setAttribute('count', 5);
+    }
+
+    if (!_domObject.CountViewComboCreated) {
+        rangeViewComboCreated(_domObject);
+    } else {
+        ComboBox_SetValue(_domObject.CountViewCombo, RangeGetCountVal(_domObject));
+    }
+
+    showRangeCountContainerTD(_domObject, _ds_count_rows)
+    RangeItemRePaint(_domObject);
+}
+
+/**
+ * Отображение viewCombo
+ * @param dom
+ */
+function rangeViewComboCreated(dom) {
+    var rcv = RangeGetCountVal(dom);
+    var list = RangeGetList(dom);
+    var countFormSettings = getProperty(dom, 'count');
+
+
+    if (rcv == 0) {
+        rcv = countFormSettings;
+        dom.setAttribute('valuecount', rcv);
+    }
+
+    if (!empty(list)) {
+        var CountArray = list.split(';');
+        CountArray.sort(compareNumbers);
+    } else if (rcv && (rcv != 20) && (rcv != 50) && (rcv != 150)) {
+        var CountArray = Array(rcv, 20, 50, 150);
+        CountArray.sort(compareNumbers);
+    } else {
+        var CountArray = new Array(20, 50, 150);
+        if (countFormSettings != rcv) {
+            CountArray.unshift(countFormSettings);
+            CountArray.sort(compareNumbers);
+        }
+    }
+
+    ComboBox_clearItems(dom.CountViewCombo);
+    for (var i = 0; i <= CountArray.length - 1; i++) {
+        ComboBox_addItem(dom.CountViewCombo, CountArray[i]);
+    }
+
+    ComboBox_SetValue(dom.CountViewCombo, rcv);
+    dom.CountViewComboCreated = true;
+}
+
+/**
+ * Отображение итого
+ * @param dom
+ * @param dsCountRows
+ */
+function showRangeCountContainerTD(dom, dsCountRows) {
+    if (getProperty(dom, 'show_count', 'false') === 'true' && dom.RangeCountContainer) {
+        var allCount = parseInt(dsCountRows);
+        dom.RangeCountContainer.innerHTML = (allCount) ? allCount : '0';
+        setDomVisible(dom.RangeCountContainerTD, true);
+    } else {
+        setDomVisible(dom.RangeCountContainerTD, false);
+    }
+}
+
+function compareNumbers(a, b) {
+    return a - b;
+}
+
+function PageChangeKeyPress(event,el) {
+    event = event || window.event;
+
+    if (event.keyCode == 13) RangeGotoPage(el, '', parseInt(el.value));
+}
+
+function RangeItemContainerRegister(_domObject, _type) {
+    var _cont = GetConteiner(_domObject, 'Range');
+
+    if (_type == 'count_view') {
+        _cont.CountViewCombo = _domObject;
+    }
+    if (_type == 'show_count') {
+        _cont.RangeCountContainer = _domObject;
+        _cont.RangeCountContainerTD = _domObject.parentNode;
+    }
+}
+
+function RangeNavigateRegister(_domObject, _type /* next prior first last*/) {
+    var _cont = GetConteiner(_domObject, 'Range');
+
+    if (_type == 'next_page') _cont.RangeNavigateNextPage = _domObject;
+    else if (_type == 'prior_page') _cont.RangeNavigatePriorPage = _domObject;
+    else if (_type == 'container') _cont.RangeNavigateContainer = _domObject;
+}
+
+function RangeItemRePaint(_domObject /*сам Range*/) {
+    var _valuecount = parseInt(RangeGetCountVal(_domObject));
+    var _rowcount = parseInt(getProperty(_domObject, 'row_count', 0));
+    var _max_pages = parseInt(Math.ceil(_rowcount / _valuecount));
+    var _pagenum = parseInt(RangeGetPageNum(_domObject));
+    var _pages_view = parseInt(getProperty(_domObject, 'pages_view', 7));
+    var _c = parseInt((_pages_view - 1) / 2 + 1);
+
+    var _nc = _domObject.RangeNavigateContainer;
+
+    _nc.cells[0].className = (_pagenum == 1 || _max_pages == 0) ? 'shownavigateinactiv' : 'shownavigate';
+    _nc.cells[_nc.cells.length - 1].className = (_pagenum == _max_pages || _max_pages == 0) ? 'shownavigateinactiv' : 'shownavigate';
+
+    var num = '<table><tr><td><div class="l"></div></td><td><div class="c">%</div></td><td><div class="r"></div></td></tr></table>';
+    var hint = 'с % запись';
+    if (_max_pages > _pages_view) {
+        _nc.cells[1].innerHTML = num.replace('%', '1');
+        _nc.cells[1].value = 1;
+        _nc.cells[1].className = '';
+        _nc.cells[1].className = (_pagenum == 1) ? 'active' : '';
+        _nc.cells[1].className += ' range-page__1';
+        _nc.cells[1].className += ' range-page__first';
+        _nc.cells[1].title = hint.replace('%', '1 по ' + _valuecount);
+
+        var _st = 2;
+        var _stp = 2;
+        if (_pagenum > _c) {
+            _nc.cells[2]._type = 'none';
+            _nc.cells[2].value = '..';
+            _nc.cells[2].innerHTML = '..';
+            _nc.cells[2].className = 'disabled';
+            _nc.cells[2].title = '';
+            _st = 3;
+            _stp = _pagenum - (_c - 3);
+        }
+
+        var _en = _pages_view;
+        _nc.cells[_pages_view - 1].className = '';
+        if (_pagenum + _c <= _max_pages) {
+            _nc.cells[_pages_view - 1]._type = 'none';
+            _nc.cells[_pages_view - 1].innerHTML = '..';
+            _nc.cells[_pages_view - 1].value = '..';
+            _nc.cells[_pages_view - 1].className = 'disabled';
+            _nc.cells[_pages_view - 1].title = '';
+            var _en = _pages_view - 1;
+        } else
+            _stp = _max_pages - (_pages_view - 3);
+
+        _nc.cells[_pages_view].innerHTML = num.replace('%', _max_pages);
+        _nc.cells[_pages_view].value = _max_pages;
+        _nc.cells[_pages_view].className = (_pagenum == _max_pages) ? 'active' : '';
+        _nc.cells[_pages_view].className += ' range-page__' + _max_pages;
+        _nc.cells[_pages_view].className += ' range-page__last';
+        _nc.cells[_pages_view].title = hint.replace('%', ((_max_pages - 1) * _valuecount + 1) + ' по ' + _rowcount);
+
+        for (var i = _st; i < _en; i++) {
+            _nc.cells[i]._type = 0;
+            _nc.cells[i].innerHTML = num.replace('%', _stp);
+            _nc.cells[i].value = _stp;
+            _nc.cells[i].className = (_stp == _pagenum) ? 'active' : '';
+            _nc.cells[i].className += ' range-page__' + _stp;
+            _nc.cells[i].title = hint.replace('%', ((_stp - 1) * _valuecount + 1) + ' по ' + ((_stp - 1) * _valuecount + _valuecount));
+            _stp++;
+        }
+    } else {
+        for (var i = 1; i < _pages_view + 1; i++) {
+            _nc.cells[i]._type = 0;
+            if (i > _max_pages) {
+                _nc.cells[i].className = 'hidden';
+                continue;
+            }
+            _nc.cells[i].innerHTML = num.replace('%', i);
+            _nc.cells[i].value = i;
+            _nc.cells[i].className = '';
+            _nc.cells[i].title = hint.replace('%', ((i - 1) * _valuecount + 1) + ' по ' + ((i - 1) * _valuecount + _valuecount));
+
+            if (_pagenum == i) _nc.cells[i].className = 'active';
+            _nc.cells[i].className += ' range-page__' + i;
+            if (i == 1) _nc.cells[i].className += ' range-page__first';
+            if (i == _max_pages) _nc.cells[i].className += ' range-page__last';
+        }
+        _nc.cells[_max_pages].title = hint.replace('%', ((_max_pages - 1) * _valuecount + 1) + ' по ' + _rowcount);
+    }
+}
+
+function RangeDSRefresh(_domObject) {
+    var _cont = GetConteiner(_domObject, 'Range');
+    RangeItemRePaint(_cont);
+    RangeValDeclare(_cont);
+    refreshDataSet(getProperty(_cont, 'refreshdataset'), false);
+}
+
+function RangeValDeclare(_domObject, profileSettings) {
+    var not_append_ds = getProperty(_domObject, 'not_append_ds');
+    var _dsname = _domObject.attributes['refreshdataset'].value;
+    var _valuecount = profileSettings ? profileSettings.amount : RangeGetCountVal(_domObject);
+    var _pagenum = RangeGetPageNum(_domObject);
+    _domObject.setAttribute('value', (_pagenum - 1) * _valuecount + 1);
+    var _valuestart = RangeGetStartVal(_domObject);
+    var _varcount = RangeGetCountName(_domObject);
+    var _varstart = RangeGetStartName(_domObject);
+    if (not_append_ds == 'true') {
+        addSystemInfo(_dsname, {get: '_range_not_append_ds', srctype: 'const', src: 'true', ignorenull: false});
+    }
+    setVar(_varstart, _valuestart);
+    setVar(_varcount, _valuecount);
+    //Разработчики не устанавливают Variable с необходимыми параметрами, ставим принудительно в случае отсутствия
+    addSystemInfo(_dsname, {get: '_c', srctype: 'var', src: _varcount, ignorenull: false});
+    addSystemInfo(_dsname, {get: '_s', srctype: 'var', src: _varstart, ignorenull: false});
+}
+
+function RangeGetCountVal(_domObject) {
+    return getProperty(_domObject, 'valuecount', 0);
+}
+
+function RangeSetCountVal(_domObject,value) {
+    return setAttribute(_domObject, 'valuecount', value);
+}
+
+function RangeGetPageNum(_domObject) {
+    return getProperty(_domObject, 'page_number', 1);
+}
+
+function RangeGetStartVal(_domObject) {
+    return getProperty(_domObject, 'value', 1);
+}
+
+function RangeGetCountName(_domObject) {
+    return getProperty(_domObject, 'varcount')
+}
+
+function RangeGetStartName(_domObject) {
+    return getProperty(_domObject, 'varstart');
+}
+
+function RangeGetList(_domObject) {
+    return getProperty(_domObject, 'list');
+}
+
+function RangeGotoNextPage(_domObject/*объект стрелочка next_page*/) {
+    RangeGotoPage(_domObject, 'next');
+}
+function RangeGotoPriorPage(_domObject/*объект стрелочка prior_page*/) {
+    RangeGotoPage(_domObject, 'prior');
+}
+function RangeCountRefresh(_domObject,_countrefresh) {
+    //нахожу контейнер
+    var _cont = GetConteiner(_domObject, 'Range');//_domObject.parentNode.parentNode.parentNode.parentNode;
+    _cont.setAttribute('valuecount', _countrefresh);
+    _cont.setAttribute('page_number', 1);
+
+    RangeDSRefresh(_cont);
+}
+
+function RangeGotoPage(_domObject, _type, _pageNum) {
+    if (_type == 'none') return;
+    var _cont = GetConteiner(_domObject, 'Range');
+
+    var l_currentPage = Number(getProperty(_cont, 'page_number'));
+    var l_MaxPage = Math.ceil(getProperty(_cont, 'row_count', '0') / RangeGetCountVal(_cont));
+    var l_NewPage = (_pageNum) ? Number(_pageNum) : (l_currentPage + Number((!isNaN(_type)) ? _type : ((_type == 'next') ? 1 : -1)));
+
+    if ((l_NewPage < 1) || (l_NewPage > l_MaxPage) || l_currentPage == l_NewPage) return;
+
+    _cont.setAttribute('page_number', l_NewPage);
+
+    RangeDSRefresh(_cont);
+}
+
+function InsteadRefresh(_dom) {
+    var _ind = null;
+    var _activ_index = 0;
+    var _start_index = 0;
+    var _dsname = _dom.attributes['refreshdataset'].value;
+    var _count = _dom.attributes['count'].value;
+    var _grid = GetConteiner(_dom, 'Grid');
+    var _locate = _getControlProperty(_grid, 'locate');
+
+    var _countvalue = Number(RangeGetCountVal(_dom));
+    _countvalue = (_countvalue) ? _countvalue : _count;
+
+    function fbody(_arr) {
+        var new_pn = +_dom.getAttribute('page_number');
+        var _sys_data = getPageByDom(_dom).form.getSysInfoByName(_dsname);
+        _sys_data['_c'] = _countvalue;
+        _sys_data['_s'] = _countvalue * (new_pn - 1) + 1;
+        _sys_data['mode'] = (_sys_data['mode'] || 'Range');
+        if (isObject(_arr) && !_arr.sys_error && (_arr.length > 0) &&
+            (typeof (_arr[0]['X_POSITION_']) !== "undefined") && (_arr[0]['X_POSITION_'] > 0)) {
+            // Переходим на страницу с выбранным пунктом
+            new_pn = Math.ceil(_arr[0]['X_POSITION_'] / _countvalue);
+            _sys_data['mode'] = (_sys_data['mode'] || 'Range') + ';Position';
+            _sys_data['Field'] = getProperty(_grid, 'field');
+            _sys_data['Value'] = _locate;
+            if ((+_dom.getAttribute('page_number') !== new_pn) &&
+                (new_pn === Math.ceil(_arr[0]['X_ROWNUM_'] / _countvalue))) {
+                // Запрашивали не ту страницу на которой выделенная строка,
+                // но запрос сместил результат на правильную страницу: исправляем параметры, результат запроса корректный
+                _sys_data['_s'] = _countvalue * (new_pn - 1) + 1;
+                _dom.setAttribute('page_number', new_pn);
+            }
+        } else if (isObject(_arr) && (_arr.length === 0) && (new_pn > 1)) {
+            // Страница не первая, но данных на ней нет: переходим на предыдущую
+            new_pn -= 1;
+        }
+        if (new_pn < 1)
+            new_pn = 1;
+        if (+_dom.getAttribute('page_number') !== new_pn) {
+            _sys_data['_s'] = _countvalue * (new_pn - 1) + 1;
+            _dom.setAttribute('page_number', new_pn);
+
+            RangeValDeclare(_dom);
+            requestDataSetData(_dsname,
+                _sys_data,
+                fbody,
+                function () {
+                    alert('Данные не были получены.')
+                });
+            return;
+        }
+        var ds = getPageByDom(_dom).form.getDataSet(_dsname);
+        ds.setData(_arr);
+        ds.callEvents('afterrefresh');
+        if (_arr.info) {
+            RangeShow(_dom, _arr.info.rowcount);
+        }
+    }
+
+    function callbackSetData(_arr) {
+        var ds = getPageByDom(_dom).form.getDataSet(_dsname);
+        var newPage = '';
+        if (_locate && isObject(_arr) && _arr.length > 0) {
+            currentPage = isNaN(currentPage)  ? Math.ceil(_arr[0]['X_ROWNUM_'] / _countvalue) : currentPage;
+            newPage = Math.ceil(_arr[0]['X_ROWNUM_'] / _countvalue);
+        } else {
+            newPage = (_arr.info.rowcount / _count) >= 1 ? Math.ceil(_arr.info.rowcount / _count) : 1;
+        }
+        _dom.setAttribute('page_number', currentPage > newPage ? newPage : currentPage);
+        RangeValDeclare(_dom);
+        ds.setData(_arr);
+        ds.callEvents('afterrefresh');
+        if (_arr.info) {
+            RangeShow(_dom, _arr.info.rowcount);
+        }
+    }
+
+    if (_locate) {
+        var _sys_data = getPageByDom(_dom).form.getSysInfoByName(_dsname);
+        var currentPage = +getProperty(_dom, 'page_number');
+        _sys_data['_c'] = _countvalue;
+        _sys_data['mode'] = (_sys_data['mode'] || 'Range') + ';Position';
+        _sys_data['Field'] = getProperty(_grid, 'field');
+        _sys_data['Value'] = _locate;
+        RangeValDeclare(_dom);
+        requestDataSetData(_dsname,
+            _sys_data,
+            callbackSetData,
+            function () {
+                alert('Данные не были получены.')
+            });
+    } else {
+        // При раскрытии сгруппированной строки в статгриде меняется на 1, т.к. нету свойства locate
+        var _statGrid = GetConteiner(_dom, 'StatGrid');
+        if (_statGrid && _statGrid.D3Store.currentParent) {
+            var _pageLocate = +getProperty(_dom, 'page_number');
+        }
+
+        // Логика при удалении в Grid и сразу обновляем грид
+        if (!empty(getProperty(_dom, 'page_number')) && !_statGrid) {
+            var currentPage = +getProperty(_dom, 'page_number');
+            var _sys_data = getPageByDom(_dom).form.getSysInfoByName(_dsname);
+            _sys_data['Value'] = _locate;
+            requestDataSetData(_dsname,
+                _sys_data,
+                callbackSetData,
+                function () {
+                    alert('Данные не были получены.')
+                });
+        } else {
+            _dom.setAttribute('page_number', _pageLocate || 1);
+            RangeValDeclare(_dom);
+            var promise = refreshDataSet(_dsname, false);
+            if (promise) {
+                promise.then(function (_dataset) {
+                    RangeValDeclare(_dom);
+                })
+            }
+        }
+    }
+}
+
+function RangeAfterRefresh(_dom) {
+    var ds = getDataSetRange(_dom)
+    if (('info' in ds.data) && ('norange' in ds.data.info) && ds.data.info.norange == 'true') {
+        return;
+    }
+    if (ds.data.info) {
+        RangeShow(_dom, ds.data.info.rowcount);
+    }
+}
+
+function clearRangePageNumber(_dom) {
+    var domRange = D3Api.getDomByAttr(_dom, 'cmptype', 'Range');
+    if (domRange) {
+        domRange.setAttribute('page_number', undefined);
+    }
+}
+
+function getDataSetRange(dom) {
+    var page = getPageByDom(dom)
+    var dsName = dom.attributes['refreshdataset'].value;
+    var ds = page.getDataSet(dsName)
+    return ds;
+}

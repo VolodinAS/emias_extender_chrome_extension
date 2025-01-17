@@ -1,0 +1,1250 @@
+//--------------------------------------
+var contextmenu_function = document.oncontextmenu;
+//--------------------------------------
+//DPopUpMenu
+function DPopUpMenu()
+{
+	DListener.call(this);
+	//Name
+	this.Name = '';
+	this.Check=0;
+	this.Onpopup = new Array();
+	this.AllItems = null;
+	this.PopupObjectName = '';
+        this.privItems = {cids:{},items:{},uid:0};
+
+	this.setName = function(_name)
+	{
+		this.Name = _name;
+	}
+
+	this.getName = function()
+	{
+		return this.Name;
+	}
+	//IsShow
+	this.IsShow = true;
+	this.setIsShow = function(_bool)
+	{
+		this.IsShow = _bool;
+	}
+	this.getIsShow = function()
+	{
+		return this.IsShow;
+	}
+
+	//HasImages
+	this.HasImages = true;
+	this.setHasImages = function(_bool)
+	{
+		this.HasImages = _bool;
+	}
+	this.getHasImages = function()
+	{
+		return this.HasImages;
+	}
+
+	//CidName
+	this.cid = '';
+	this.setCidName = function(_cid)
+	{
+		this.cid = _cid;
+	}
+	this.getCidName = function()
+	{
+		return this.cid;
+	}
+	//PopupObject
+	var popup = function (evt)
+	{
+		document.oncontextmenu= function(){return false;};
+		evt = (evt) ? evt : ((window.event) ? event : null);
+		var coords=getPageEventCoords(evt); //{left:evt.pageX||evt.x,top:evt.pageY||evt.y};
+		var t = getEventTarget(evt);
+
+		if(hasClass(t,'without-menu')) return;
+		if(evt.type === 'click' || (BROWSER.opera == true && evt.ctrlKey))
+		{
+			this.show(coords);
+		}
+		else if((evt.button && evt.button == 2) || (evt.which && evt.which == 3))
+		{
+			this.show(coords);
+		}
+	}
+        var _popupmenuObject=this;
+        var funcPopup = function(evt){popup.call(_popupmenuObject,evt);};
+        this.hideFunc = function(evt)
+        {
+            if(!_popupmenuObject.inPopup(getEventTarget(evt)))
+                _popupmenuObject.Hide();
+        };
+        this.inPopup = function(dom)
+        {
+            while(dom)
+            {
+                if(dom === this.popupDomContainer)
+                    return true;
+                dom = dom.parentNode;
+            }
+            return false;
+        }
+	this.setPopupObject = function(_popupobjectname)
+	{
+		this.PopupObjectName = _popupobjectname;
+		if(this.PopupObject!=null)
+		{
+			removeEvent(this.PopupObject,'mousedown',funcPopup);
+                        var btn_menu = getDomBy(this.PopupObject,'[cont="'+_popupobjectname+'_popupmenu"]');
+                        btn_menu && removeEvent(btn_menu,'click',funcPopup);
+                        if(!empty(btn_menu))
+												{
+													setDomVisible(btn_menu, false);
+												}
+		}
+		this.PopupObject = getControlByName(_popupobjectname);
+
+                var btn_menu = getDomBy(this.PopupObject,'[cont="'+_popupobjectname+'_popupmenu"]');
+                btn_menu && addEvent(btn_menu,'click',funcPopup);
+                if(!empty(btn_menu))
+                {
+									setDomVisible(btn_menu, true);
+                }
+		addEvent(this.PopupObject,'mousedown',funcPopup);
+	}
+	this.getPopupObject = function()
+	{
+		return this.PopupObject;
+	}
+
+	//NullItem
+	this.nullItem = new DPopUpMenuItem();
+
+	//timeOut
+	this.timeId = false;
+
+	this.baseMenuItem             = new DPopUpMenuItem();
+	this.baseMenuItem.isShowItems = true;
+	this.focusItem                = null;
+
+	this.addItem=function (_parentItem,_name,_caption,_action)
+	{
+		var menuItem       = new DPopUpMenuItem();
+		menuItem.name    = _name;
+		menuItem.caption = _caption;
+		menuItem.action   = _action;
+		if(this.IsJoin == true) menuItem.join=true;
+		else menuItem.join=false;
+        if(this.autopopup) menuItem.autopopup = true;
+		if(_parentItem != null)
+		{
+			menuItem.parentMenu = _parentItem;
+			menuItem.parentMenu.Items[menuItem.parentMenu.Items.length] = menuItem;
+		}
+		else
+		{
+			this.baseMenuItem  = menuItem;
+			menuItem.parentMenu=this.baseMenuItem;
+		}
+		return menuItem;
+	}
+
+	this.show = function(coords)
+	{
+                this.popupCoords = coords;
+                this.cancelPopup = false;
+                this.checkPrivPopupItems();
+		this.dispatchEvent('onshowpopup');
+		if(!this.IsShow || this.cancelPopup) {this.dispatchEvent('onhidepopup'); return false;}
+
+		if(this.baseMenuItem.Items.length>0)
+		{
+                        this.OnFocused();
+			var element = this.vdom;
+			var shift_left = 0;
+			var shift_top = 0;
+                        var sX = getBodyScrollLeft();
+                        var sY = getBodyScrollTop();
+			element.style.display = "block";
+                        var el_size = getAbsoluteClientRect(element);
+                        el_size.x = coords.left-5;
+                        el_size.y = coords.top-5;
+
+                        var page = GetPageWindowSize();
+
+                        var h = page.windowHeight+sY;
+                        var mcY = el_size.y+el_size.height;
+
+                        if (mcY-h > 0)
+                            el_size.y -=mcY-h+7;
+
+                        var w = page.windowWidth+sX;
+                        var mcX = el_size.x+el_size.width;
+
+                        if (mcX-w > 0)
+                            el_size.x -=mcX-w+7;
+
+			element.style.left = el_size.x+'px';
+			element.style.top  = el_size.y+'px';
+                        //this.UnFocused(null,1000);
+                        addEvent(document,"mousedown",this.hideFunc,true);
+		}
+		return true;
+	}
+
+	this.create  = function ()
+	{
+		if(empty(this.getName()))return;
+
+		var control=getControlByName(this.getName());
+		if (!control.popup) {
+			return;
+		}
+
+		this.dispatchEvent('oncreatepopup');
+		if(!this.IsShow) {
+			this.dispatchEvent('onhidepopup');
+			return false;
+		}
+
+		control.popup.popupDomContainer.innerHTML = "";
+		for(var index=0; index < this.baseMenuItem.Items.length; index++)
+		{
+			var item = this.baseMenuItem.Items[index];
+			if(item.before){
+				var position=index;
+				var newposition=0;
+				for(var jndex=0; jndex < this.baseMenuItem.Items.length; jndex++)
+				{
+					if(this.baseMenuItem.Items[jndex].getCssImg()==item.before)
+						newposition = jndex;
+				}
+				item.before=null;
+				this.baseMenuItem.Items.splice(position,1);
+				this.baseMenuItem.Items.splice(newposition,0, item);
+			}
+			if(item.after){
+				var position=index;
+				var newposition=0;
+				for(var jndex=0; jndex < this.baseMenuItem.Items.length; jndex++)
+				{
+					if(this.baseMenuItem.Items[jndex].getCssImg()==item.after)
+						newposition = jndex+1;
+				}
+				item.after=null;
+				this.baseMenuItem.Items.splice(position,1);
+				this.baseMenuItem.Items.splice(newposition,0, item);
+			}
+		}
+		control.popup.domChildMenuContainer = this.paint();
+		return true;
+	}
+
+	this.paint = function ()
+	{
+		var menu = fnPopUpMenuPaint({ This:this,
+		 				Index:0,
+		 				Level:null,
+		 				Name:this.Name,
+		 				Items:this.baseMenuItem.Items});
+		return menu;
+	}
+
+	this.OnFocused = function (_item)
+	{
+                if (!_item) return;
+		if(this.focusItem!=_item.getParentItem() && this.focusItem!=null)
+		{
+			if(this.focusItem.level >= _item.level)
+			{
+				_item.getParentItem().HideItemsExtendThis(_item,_item.getParentItem());
+			}
+			this.focusItem.HideItems();
+		}
+		this.focusItem = _item;
+		if(_item.Items.length>0 && !_item.disable)
+		{
+			_item.ShowItems();
+		}
+	}
+
+	this.Hide = function()
+	{
+            removeEvent(document,"mousedown",this.hideFunc,true);
+	    this.dispatchEvent('onhidepopup');
+		this.vdom.style.display="none";
+		this.baseMenuItem.isShowItems = true;
+	    this.baseMenuItem.HideItems();
+	    this.focusItem = null;
+	}
+        this.checkPrivs = false;
+        this.checkPrivPopupItems = function()
+        {
+            var nR = false;
+            var pI = this.privItems;
+            for(var c in pI.cids)
+            {
+				if(!pI.cids.hasOwnProperty(c)){
+					continue;
+				}
+               	var nV = getControlValue(pI.cids[c].ctrl);
+
+               	if (nV != pI.cids[c].value)
+               	{
+                    nR = true;
+                    pI.cids[c].value = nV;
+               	}
+            }
+            if (!nR && this.checkPrivs)
+                return;
+
+            this.checkPrivs = true;
+            nR = false;
+            var dM = '[';
+            var d = '';
+            for(var i in pI.items)
+            {
+            	if(!pI.items.hasOwnProperty(i)){
+            		continue;
+				}
+                pI.items[i].item.privSet = false;
+                pI.items[i].item.setDisable(true);
+                if(pI.items[i].item.unitbp_hide) pI.items[i].item.setHide(true);
+                var cV = (pI.items[i].cid && pI.cids[pI.items[i].cid])?pI.cids[pI.items[i].cid].value:'';
+                dM += d+'{"name":"'+i+'","unit_code":"'+pI.items[i].unit_code+'","st_action":"'+pI.items[i].st_action+'","cid":"'+cV+'"';
+				if(!empty(pI.items[i].item.lpu_var) && !empty(getVar(pI.items[i].item.lpu_var))){
+					dM += ',"lpu":"'+getVar(pI.items[i].item.lpu_var)+'"'
+				}
+				dM += '}'
+                d=',';
+                nR = true;
+            }
+            dM += ']';
+            if (nR)
+                requestServerModule(true, 'System/system', {Module: 'privPopup', priv: dM}, this.setPrivPopupItem, null, this, false, false);
+        }
+        this.setPrivPopupItem = function(res)
+        {
+            if (res == '')
+                return;
+            var items = res.split(',');
+
+            var pI = this.privItems;
+            for(var i = 0; i < items.length; i++)
+            {
+                if (pI.items[items[i]])
+                {
+                    pI.items[items[i]].item.privSet = true;
+                    if(pI.items[items[i]].item.unitbp_hide) pI.items[items[i]].item.setHide(false);
+                    pI.items[items[i]].item.setDisable(false);
+                }
+            }
+        }
+}
+//DPopUpMenuItem
+function DPopUpMenuItem()
+{
+	DListener.call(this);
+	this.unitbp = null;
+	this.unit_code = null;
+	this.st_action = null;
+
+	this.parentMenu = null;
+	this.name    = null;
+
+        this.privSet = true;
+	this.setName = function(_name)
+	{
+		this.name = _name;
+	}
+	this.getName = function()
+	{
+		return this.name;
+	}
+	this.action = null;
+
+	this.separator = false;
+
+	this.domChildMenuContainer  = null; //ссылка на контейнер (div) дочернего пункта меню
+	this.isShowItems = false;
+	this.Items = new Array();
+
+	//setBefore
+	this.before=null;
+	this.setBefore=function(_cssimgName){
+		this.before = _cssimgName;
+	}
+	this.after=null;
+	this.setAfter=function(_cssimgName){
+		this.after = _cssimgName;
+	}
+	//image
+	this.image = null;
+	this.setImage = function(_image)
+	{
+		this.image = _image;
+	}
+	this.getImage = function()
+	{
+		return this.image;
+	}
+	//cssimage
+	this.cssimg = null;
+	this.setCssImg = function(_className)
+	{
+		this.cssimg = _className;
+	}
+	this.getCssImg = function()
+	{
+		return this.cssimg;
+	}
+	//caption
+	this.caption = null;
+	this.setCaption = function(_caption)
+	{
+		this.caption = _caption;
+	}
+	this.getCaption = function()
+	{
+		return this.caption;
+	}
+
+	//hide
+	this.hide = false;
+	this.setHide = function (_bool)
+	{
+		this.hide = _bool;
+		if(this.vdom)
+		{
+			if(_bool==true)
+			{
+				this.vdom.style.display = 'none';
+			}
+			else
+			{
+                                this.vdom.style.display = '';
+			}
+		}
+
+	}
+	this.getHide = function()
+	{
+		return this.hide;
+	}
+
+	//disable
+	this.disable = false;
+	this.setDisable = function (_bool)
+	{
+		this.disable = _bool;
+		if(this.vdom)
+		{
+			if(_bool==true)
+			{
+				this.vdom.className = 'item-disable';
+			}
+			else
+			{
+                                if (this.privSet)
+                                    this.vdom.className = 'item-base';
+                                else
+                                    this.disable = true;
+			}
+		}
+	}
+	this.getDisable = function()
+	{
+		return this.disable
+	}
+	//CidName
+	this.cid = '';
+	this.setCidName = function(_cid)
+	{
+		this.cid = _cid;
+	}
+	this.getCidName = function()
+	{
+		return this.cid;
+	}
+	//UnitBP
+	this.unitbp = '';
+    this.unitbp_hide = null;
+	this.setUnitBP = function(_unitbp)
+	{
+		this.unitbp = _unitbp;
+	}
+	this.getUnitBP = function()
+	{
+		return this.unitbp;
+	}
+	//UnitCode
+	this.unit_code = '';
+	this.setUnitCode = function(_unit_code)
+	{
+		this.unit_code = _unit_code;
+	}
+	this.getUnitCode = function()
+	{
+		return this.unit_code;
+	}
+	//ST_ACTION
+	this.st_action = '';
+	this.setStAction = function(_st_action)
+	{
+		this.st_action = _st_action;
+	}
+	this.getStAction = function()
+	{
+		return this.st_action;
+	}
+
+	//Paint
+	this.paint = function (_object)
+	{
+		if(this.hide) {
+			return null;
+		}
+		var menu = fnPopUpMenuPaint({This:_object.This,
+					Level:_object.Level,
+					Index:_object.Index,
+					Name:_object.Name,
+					Items:this.Items});
+		return menu;
+	}
+
+	this.setParentItem = function(_parentMenuItem)
+	{
+		this.parentMenu=_parentMenuItem;
+	}
+	this.getParentItem = function()
+	{
+		return this.parentMenu;
+	}
+
+	this.ShowItems    = function()
+	{
+		if(this.domChildMenuContainer != null)
+		{
+			this.domChildMenuContainer.style.display = "block";
+			this.setPositionMenuItem();
+			this.isShowItems = true;
+		}
+	}
+
+	this.HideItems = function()
+	{
+		if(!this.isShowItems) return;
+		this.isShowItems = false;
+		if(this.Items.length==0) return;
+		for(var _index=0; _index < this.Items.length; _index++)
+		{
+			this.Items[_index].HideItems();
+		}
+		if(this.domChildMenuContainer != null)
+		{
+			this.domChildMenuContainer.style.display="none";
+		}
+	}
+
+	this.HideItemsExtendThis = function(_item,_parent)
+	{
+		for(var _index = 0; _index < _parent.Items.length; _index++)
+		{
+			_parent.Items[_index].HideItemsExtendThis(_item, _parent.Items[_index]);
+			_parent.Items[_index].HideItems();
+		}
+	}
+
+	this.setPositionMenuItem = function()
+	{
+		var cellElement = this.domParentItemContainer;
+		if(cellElement)
+		{
+			var element  = this.domChildMenuContainer;
+			var cellRect = getAbsoluteRect(cellElement);
+			var winRect = GetPageWindowSize();
+			var itemRect = getAbsoluteRect(element);
+
+			Left = cellRect.x+cellRect.width;
+			if((Left + itemRect.width) > winRect.windowWidth)//пункт меню не умещаеться справа
+			{
+				Left = Left-cellRect.width-itemRect.width;
+			}
+
+			Top = cellRect.y;
+			if((Top + itemRect.height) > winRect.windowHeight)//умещаеться ли снизу пункт меню
+			{
+                if((Top - itemRect.height + cellRect.height) < 0)
+                {
+                    element.style.height = Top + 'px';
+                    element.style.overflowY = D3BROWSER.firefox ? "scroll" : "auto";
+                    Top = 0;
+                } else {
+                    Top = Top - itemRect.height + cellRect.height;
+                }
+			}
+            if (Left < 0) {
+                Left = 0;
+            }
+            element.style.left = Left + 'px';
+			element.style.top  = Top + 'px';
+		}
+	}
+}
+
+function fnPopUpMenuPaint(_object)
+{
+	var timeOut = 500;
+	if(_object.Level == null)_object.Level = 0;
+	else _object.Level++;
+
+	var menudiv = document.createElement('DIV');
+		menudiv.style.zIndex = _object.Level+10000;
+		menudiv.className = 'popup-menu';
+
+	if(_object.Level == 0)_object.This.vdom = menudiv;
+	var menutbl = document.createElement('TABLE');
+	    menutbl.className = 'popup-menuitem';
+	    menudiv.appendChild(menutbl);
+
+	menudiv.level = _object.Level;
+	menudiv.obj = _object.This;
+	menudiv.onmouseenter = function () {
+		if (this.parentNode.timeId) {
+			clearTimeout(this.parentNode.timeId);
+		}
+	};
+	menudiv.onmouseleave = function () {
+		var self = this;
+		self.parentNode.timeId = setTimeout(function () {
+			fn_DPopUpMenu_OnTimeOut(self.querySelector('tr').obj);
+		}, timeOut);
+	};
+
+	var cells = new Array();
+	var checkMenuLen = -1;
+	var menutbody = document.createElement('TBODY');
+    var autopopuptbody = document.createElement('TBODY');
+    menutbl.appendChild(menutbody);
+    menutbl.appendChild(autopopuptbody);
+	for(var index=0; index < _object.Items.length; index++)
+	{
+			var menurow = document.createElement('TR');
+            if(_object.Items[index].autopopup){
+                autopopuptbody.appendChild(menurow);
+            }else{
+                menutbody.appendChild(menurow);
+            }
+                        _object.Items[index].vdom = menurow;
+                        if(_object.Items[index].hide)
+                        {
+                                _object.Items[index].vdom.style.dispaly = 'none';
+                        }
+			if(_object.This.getHasImages())
+			{
+				var cell_img = document.createElement('TD');
+					cell_img.className = 'item-base';
+					menurow.appendChild(cell_img);
+					var _image = _object.Items[index].getImage();
+					var _cssimage=_object.Items[index].getCssImg();
+					if(!empty(_image) || !empty(_cssimage))
+					{
+						var img = document.createElement('IMG');
+						if(!empty(_cssimage)){img.className=_cssimage;img.src = 'Images/s.gif';}
+						if(!empty(_image)){img.src = _image;}
+						cell_img.appendChild(img);
+					}
+			}
+
+			var cell = document.createElement('TD');
+				menurow.appendChild(cell);
+
+			var cell_arrow = document.createElement('TD');
+				menurow.appendChild(cell_arrow);
+
+			if( _object.Items[index].caption.length<12 && checkMenuLen!=0)	checkMenuLen = 1;
+			else checkMenuLen = 0;
+
+			if(checkMenuLen==1 && index == _object.Items.length-1)
+			{
+				menurow.style.width = '80px';
+			}
+
+			if(_object.Items[index].getDisable())
+			{
+				menurow.className = 'item-disable';
+			}
+			else if (_object.Items[index].getCaption()=='-')
+			{
+				 menurow.className = "separator";
+				_object.Items[index].separator = true;
+			}
+			else
+			{
+				menurow.className = 'item-base';
+			}
+
+			if(!_object.Items[index].separator)
+			{
+				cell.innerHTML = _object.Items[index].getCaption();
+			}
+
+			menurow.obj     = _object.This;
+			menurow.item    = _object.Items[index];
+
+			cells[cells.length] = menurow;
+
+			cells[cells.length-1].onmouseenter = function()
+			{
+				if(!this.item.separator && !this.item.getDisable())this.className = 'item-active';
+					this.obj.OnFocused(this.item);
+			}
+
+			cells[cells.length-1].onmouseleave  = function()
+			{
+				if(!this.item.separator && !this.item.getDisable())this.className = 'item-base';
+			}
+			cells[cells.length-1].onclick    = function ()
+			{
+				if(!this.item.getDisable())
+				{
+					this.obj.OnFocused(this.item);
+					if(this.item.Items.length==0)
+					{
+						this.obj.Hide();
+						addStackPage(getPage(0));
+						this.item.dispatchEvent('onclick');
+                                                if (this.item.action instanceof Function)
+                                                    this.item.action.call(this.item);
+                                                else
+                                                    eval(this.item.action);
+						removeStackPage();
+
+					}
+				}
+			}
+
+			if(_object.Items[index].Items.length > 0)
+			{
+
+				cell_arrow.className = 'item-arrow'; //стрелочка, если есть дочерние эл-ты
+				_object.Index++;
+
+				_object.Items[index].domParentItemContainer = menurow;
+
+				_object.Items[index].domChildMenuContainer =_object.Items[index].paint({This:_object.This,
+															Level:_object.Level,
+															Name:_object.Name,
+															Index:_object.Index});
+
+			}
+
+			_object.Items[index].level = _object.Level;
+
+			if(_object.Items[index].Items.length == 0 && index==_object.Items.length-1)
+			{
+				_object.Level = 0;
+			}
+	}
+	getControlByName(_object.This.getName()).popup.popupDomContainer.appendChild(menudiv);
+	return menudiv;
+}
+function fn_DPopUpMenu_OnTimeOut(_object)
+{
+	_object.Hide();
+}
+
+//destructPopUpMenu
+function destructPopUpMenu(_node){
+    if(!_node.popup)
+        return;
+	var element = _node.popup.popupDomContainer;
+	if(element.parentNode != null)
+	{
+		element.parentNode.removeChild(element);
+	}
+}
+
+//parsePopUpMenuXml
+function parsePopUpMenuXml(_node)
+{
+	if(!isObject(_node)){
+		showError(_node);
+		return;
+	}
+	var menu = {};
+	var _name = null;
+	var _popupobject = null;
+	var _is_show = null;
+	var _join_menu = null;
+	var _onpopup = null;
+	var getEvalFunc=function (_string){
+		return function (){eval(_string);};
+	}
+        _join_menu = getProperty(_node,'join_menu','');
+        if (_join_menu == '')
+        {
+            _join_menu = getProperty(_node,'join_menu_var','');
+            if (_join_menu != '')
+                _join_menu = getVar(_join_menu)+'_popup';
+        }
+
+	if(isExistsControlByName(_join_menu,false) && getControlByName(_join_menu).popup)
+	{
+		menu = getControlByName(_join_menu).popup;
+		menu.IsJoin = true;
+		_node.popup = menu;
+	}
+        else
+	{
+                menu = new DPopUpMenu();
+	 	menu.allItems = new Array();
+	 	menu.IsJoin = false;
+	 	_node.popup = menu;
+                _join_menu='';
+        }
+    menu.autopopup = getProperty(_node, 'autopopup');
+
+	for(var jndex=0; jndex<_node.attributes.length; jndex++)
+	{
+		if(empty(_join_menu))
+		{
+			if(_node.attributes[jndex].name=='name')
+			{
+				_name = _node.attributes[jndex].value;
+				menu.setName(_name);
+			}
+			else if(_node.attributes[jndex].name=='popupobject' || _node.attributes[jndex].name=='popupobject_var')
+			{
+				if(_node.attributes[jndex].name=='popupobject') _popupobject = _node.attributes[jndex].value;
+				else _popupobject = getVar(_node.attributes[jndex].value);
+				menu.setPopupObject(_popupobject);
+			}
+			else if(_node.attributes[jndex].name=='is_show')
+			{
+				if(_node.attributes[jndex].value == 'true' || _node.attributes[jndex].value == 1) _is_show = true;
+				else if(_node.attributes[jndex].value == 'false' || _node.attributes[jndex].value == 0) _is_show = false;
+				menu.setIsShow(_is_show);
+			}
+			else if(_node.attributes[jndex].name=='hasimages')
+			{
+				var _hasimages=false;
+				if(_node.attributes[jndex].value == 'true' || _node.attributes[jndex].value == 1) _hasimages = true;
+				else if(_node.attributes[jndex].value == 'false' || _node.attributes[jndex].value == 0) _hasimages = false;
+				menu.setHasImages(_hasimages);
+			}
+			else if(_node.attributes[jndex].name=='cid_object')
+			{
+				_cid = _node.attributes[jndex].value;
+				menu.setCidName(_cid);
+			}
+		}
+		if(_node.attributes[jndex].name=='onpopup')
+		{
+			_onpopup = _node.attributes[jndex].value;
+			if(!empty(_onpopup))
+			{
+				menu.Onpopup['attrs'] = _onpopup;
+				if(empty(_join_menu))PopUpMenu_OnShow(_node,getEvalFunc(_onpopup));
+			}
+		}
+	}
+
+	if(_node.childNodes.length>0)
+	{
+		if(empty(_join_menu)) menu.allItems[0] = menu.addItem(null,"BaseMenu"+menu.getName(),"BaseMenu"+menu.getName(),false);
+		if(getProperty(_node,'lpu_var',null) != null){
+			menu.allItems[0]['lpu_var'] = getProperty(_node,'lpu_var','null');
+		}
+		parsePopUpMenuItemXml(_node.childNodes,menu,menu.allItems[0]);
+
+		if(!document.getElementById("_popupContainer"))
+		{
+			var p = document.createElement('DIV');
+			    p.id="_popupContainer";
+			    p.style.left = 0;
+			    p.style.top = 0;
+			    p.style.position = "absolute";
+			    document.getElementById("_mainContainer").appendChild(p);
+		}
+		if(empty(_join_menu))
+		{
+			var elem = document.createElement('DIV');
+			elem.style.display = "block";
+			elem.id = 'PopUp_Menu_'+menu.getName();
+			document.getElementById("_popupContainer").appendChild(elem);
+			menu.popupDomContainer = elem;
+		}
+		_node.innerHTML = "";
+	}
+
+	if(menu.IsJoin == true){
+		var _script ='';
+		for (var index=0; index < menu.allItems.length; index++)
+		{
+			if(menu.allItems[index].join==true)
+			{
+				var unitbp = menu.allItems[index].getUnitBP();
+				var cid = menu.allItems[index].getCidName();
+				var unit_code = menu.allItems[index].getUnitCode();
+				var st_action = menu.allItems[index].getStAction();
+				//if(empty(cid))cid = menu.getCidName();
+				/*if(!empty(unitbp) && !empty(cid) && !empty(unit_code) && !empty(st_action))
+				{
+					_script += " setVar('SYS_CATALOG', getValue('"+cid+"'));"+
+					"setVar('SYS_UNIT_CODE', '"+unit_code+"');"+
+					"if(empty(getVar('SYS_POPUPITEM_ADD_PRIV')))"+
+						"executeAction('"+menu.PopupObjectName+"_getpriv_p',"+
+					"function(){"+
+					"if (('"+st_action+"' == 'INSERT' && (getVar('SYS_POPUPITEM_ADD_PRIV')==1"+
+						"|| getVar('SYS_POPUPITEM_ADD_PRIV')=='1'))"+
+						"|| ('"+st_action+"' == 'UPDATE' && (getVar('SYS_POPUPITEM_UPD_PRIV')==1"+
+						"|| getVar('SYS_POPUPITEM_UPD_PRIV')=='1'))"+
+						"|| ('"+st_action+"' == 'DELETE' && (getVar('SYS_POPUPITEM_DEL_PRIV')==1"+
+						"|| getVar('SYS_POPUPITEM_DEL_PRIV')=='1'))"+
+						"|| ('"+st_action+"' == 'MOVE_OUT' && (getVar('SYS_POPUPITEM_MOV_PRIV')==1"+
+						"|| getVar('SYS_POPUPITEM_MOV_PRIV')=='1')))"+
+							"var _disabled=false; else var _disabled=true;"+
+					"PopUpItem_SetHide(getControlByName('"+menu.getName()+"'), '"+menu.allItems[index].getName()+"', _disabled);"+
+					"}, null, null, false,0);";
+				}*/
+			}
+		}
+		if(!empty(_script))
+		{
+			var getEvalFunc=function (_string){
+				return function (){eval(_string);};
+			}
+			_script = " if(getControlProperty('"+menu.getCidName()+"','value') != getVar('joinSYS_CATALOG')){setVar('SYS_POPUPITEM_ADD_PRIV',''); setVar('joinSYS_CATALOG',getControlProperty('"+menu.getCidName()+"','value')); "+_script+"}";
+			menu.Onpopup['script'] = _script;
+
+			if(!empty(menu.Onpopup['attrs']))_script = _script + menu.Onpopup['attrs'];
+
+			menu.addListener('onshowpopup', getEvalFunc(_script), menu, false);
+		}
+		else if(!empty(menu.Onpopup['attrs']))
+		{
+			menu.addListener('onshowpopup', getEvalFunc(menu.Onpopup['attrs']), menu, false);
+		}
+	}
+
+	menu.create();
+
+	if(empty(_join_menu)){
+		_node.popup.addListener('onhidepopup', function () {
+									document.oncontextmenu = contextmenu_function;
+								}, null,false);
+	}
+}
+
+function parsePopUpMenuItemXml(_item_nodes,_menu,_parent_menu)
+{
+	var text='';
+	var _item_node;
+	var j;
+        var  _parent_menu_temp=undefined;
+	for(var i = 0; i < _item_nodes.length; i++)
+	{
+		_item_node = _item_nodes[i];
+	switch(_item_node.nodeName.toLowerCase())
+          {
+        	case 'div':
+        	{
+                    var _caption=null, _action=null, _disable=null, _hide=null, _name=null, _image=null, _unitbp=null,
+						_unitbp_hide=null, _cid=null, _cssimg=null, _unit_code=null, _st_action=null, _before=null,
+                        _after=null, _lpu_var=null;
+                    for(j = 0; j < _item_node.attributes.length; j++)
+                    {
+                    switch(_item_node.attributes[j].name){
+                                    case 'caption':{
+                                            _caption = _item_node.attributes[j].value;
+                                            break;
+                                    }
+                                    case 'name':{
+                                            _name = _item_node.attributes[j].value;
+                                            break;
+                                    }
+                                    case 'before':{
+                                            _before = _item_node.attributes[j].value;
+                                            break;
+                                    }
+                                    case 'after':{
+                                            _after = _item_node.attributes[j].value;
+                                            break;
+                                    }
+                                    case 'image':{
+                                            _image = _item_node.attributes[j].value;
+                                            break;
+                                    }
+                                    case 'cssimg':{
+                                            _cssimg = _item_node.attributes[j].value;
+                                            break;
+                                    }
+                                    case 'onclick':{
+                                            _action = _item_node.attributes[j].value;
+                                            break;
+                                    }
+                                    case 'disable':{
+                                            if(_item_node.attributes[j].value == 'true' || _item_node.attributes[j].value == 1) _disable = true;
+                                            else if(_item_node.attributes[j].value == 'false' || _item_node.attributes[j].value == 0) _disable = false;
+                                            break;
+                                    }
+                                    case 'hide':{
+                                            if(_item_node.attributes[j].value == 'true' || _item_node.attributes[j].value == 1) _hide = true;
+                                            else if(_item_node.attributes[j].value == 'false' || _item_node.attributes[j].value == 0) _hide = false;
+                                            break;
+                                    }
+                                    case 'cid_object':{
+                                            _cid = _item_node.attributes[j].value;
+                                            break;
+                                    }
+                                    case 'unitbp':{
+                                            _unitbp = _item_node.attributes[j].value;
+                                            break;
+                                    }
+                                    case 'unitbp_hide':{
+                                        _unitbp_hide = _item_node.attributes[j].value;
+                                        break;
+                                    }
+                                    case 'unit_code':{
+                                            _unit_code = _item_node.attributes[j].value;
+                                            break;
+                                    }
+                                    case 'st_action':{
+                                            _st_action = _item_node.attributes[j].value;
+                                            break;
+                                    }
+									case 'lpu_var':{
+										_lpu_var = _item_node.attributes[j].value;
+									}
+                            }
+                    }
+                    var _len = _menu.allItems.length;
+                    if(empty(_caption)) break;
+                    //реализация вложенной структуры. Необходимо для автоматически прикрепленных отчетов
+                    if  ( />/.test(_caption) ){
+                        var capt_array = _caption.split(">");
+                        for(var i1 = 0; i1 < capt_array.length-1; i1++)
+                        {
+                             var j1=0;
+                             var find_item=false;
+                             while (j1< _menu.allItems.length && !find_item)
+                             {
+                                //ищем итем с таким же названием и предком, 1<1<1<3
+                                if (_menu.allItems[j1].caption==capt_array[i1]&&
+                                        ((i1==0 && _menu.allItems[j1].parentMenu==_parent_menu)||
+                                                (i1!=0 &&_menu.allItems[j1].parentMenu==_parent_menu_temp))
+                                ) find_item=true
+                                else j1++
+                             }
+                             if (find_item)
+                             {
+                                 _parent_menu_temp=_menu.allItems[j1];
+                             }else{
+                                 _menu.allItems[_len]=_menu.addItem(_parent_menu_temp || _parent_menu,null,capt_array[i1],null);
+                                 if(_cssimg)_menu.allItems[_len].setCssImg(_cssimg);
+                                 _parent_menu_temp= _menu.allItems[_len];
+                                 _len++;
+                             }
+                        }
+                        _caption=capt_array[capt_array.length-1];
+                    }
+                    _menu.allItems[_len] = _menu.addItem(_parent_menu_temp || _parent_menu,_name,_caption,_action);
+                    _menu.allItems[_len].setName(_name);
+                    if(_before)_menu.allItems[_len].setBefore(_before);
+                    if(_after)_menu.allItems[_len].setAfter(_after);
+                    if(_image)_menu.allItems[_len].setImage(_image);
+                    if(_cssimg)_menu.allItems[_len].setCssImg(_cssimg);
+                    if(_disable)_menu.allItems[_len].setDisable(_disable);
+                    if(_hide)_menu.allItems[_len].setHide(_hide);
+                    if(_unitbp)
+                    {
+                        _menu.allItems[_len].setUnitBP(_unitbp);
+                        if(_unitbp_hide) _menu.allItems[_len].unitbp_hide = _unitbp_hide;
+                        if (_cid)
+                        {
+                            var c = getControlByName(_cid);
+                            if (c)
+                                _menu.privItems.cids[_cid] = {ctrl: c, value: undefined};
+                        }
+                        _menu.privItems.uid++;
+                        _menu.privItems.items[_name+'_uid'+_menu.privItems.uid] = {unit_code: _unit_code, st_action: _st_action, cid: _cid, item: _menu.allItems[_len]};
+						if(!empty(_lpu_var)){
+							_menu.allItems[_len]['lpu_var'] = _lpu_var;
+						}else{
+							if(!empty(_parent_menu['lpu_var'])){
+								_menu.allItems[_len]['lpu_var'] = _parent_menu['lpu_var'];
+							}
+						}
+                    }
+                    if(_cid)_menu.allItems[_len].setCidName(_cid);
+                    if(_unit_code)_menu.allItems[_len].setUnitCode(_unit_code);
+                    if(_st_action)_menu.allItems[_len].setStAction(_st_action);
+                    else _menu.allItems[_len].setCidName(_menu.getCidName());
+                    if(_item_node.childNodes.length > 0)
+                    {
+                            parsePopUpMenuItemXml(_item_node.childNodes,_menu,_menu.allItems[_len]);
+                    }
+                    _parent_menu_temp=undefined;
+                    break;
+        	}
+        	case 'error':
+        	{
+        		showXmlError(_node);
+        		break;
+        	}
+        	default:{}
+        }
+	}
+}
+
+//PopUpMenu----------------------------------------------------
+SYS_ControlActions['Popup']=new Array();
+SYS_ControlActions['Popup']['create']={set:PopUpMenu_Create};
+SYS_ControlActions['Popup']['oncreatepopup']={set:PopUpMenu_OnCreate};
+SYS_ControlActions['Popup']['onshowpopup']={set:PopUpMenu_OnShow};
+SYS_ControlActions['Popup']['onhidepopup']={set:PopUpMenu_OnHide};
+//SYS_ControlActions['PopUpMenu']['name']={set:PopUpMenu_SetName,get:PopUpMenu_GetName};
+//SYS_ControlActions['PopUpMenu']['popupobject']={set:PopUpMenu_SetPopupObject,get:PopUpMenu_GetPopupObject};
+SYS_ControlActions['Popup']['is_show']={set:PopUpMenu_SetIsShow,get:PopUpMenu_GetIsShow};
+SYS_ControlActions['Popup']['hasimages']={set:PopUpMenu_SetHasImages,get:PopUpMenu_GetHasImages};
+SYS_ControlActions['Popup']['hideitem']={set:PopUpMenu_HideItem};
+SYS_ControlActions['Popup']['showitem']={set:PopUpMenu_ShowItem};
+
+function PopUpMenu_HideItem(_domObject,_itemName){
+	PopUpMenu_GetItemByName(_domObject,_itemName).setHide(true);
+}
+function PopUpMenu_ShowItem(_domObject,_itemName){
+	PopUpMenu_GetItemByName(_domObject,_itemName).setHide(false);
+}
+/*
+SYS_ControlActions['PopupItem']=new Array();
+SYS_ControlActions['PopupItem']['caption']={set:PopUpItem_SetCaption,get:PopUpItem_GetCaption};
+SYS_ControlActions['PopupItem']['image']={set:PopUpItem_SetImage,get:PopUpItem_GetImage};
+SYS_ControlActions['PopupItem']['onclick']={set:PopUpItem_SetOnClick};
+SYS_ControlActions['PopupItem']['disable']={set:PopUpItem_SetDisable,get:PopUpItem_GetDisable};
+SYS_ControlActions['PopupItem']['hide']={set:PopUpItem_SetHide,get:PopUpItem_GetHide};
+*/
+//GetItemByName----------------------------------------------------------
+
+function PopUpMenu_GetItemByName(_domObject,_name)
+{
+
+	var p = _domObject.popup.allItems;
+	for(var i = 0; i < p.length; i++)
+	{
+		if(p[i].name == _name && p[i].name!=null)
+		{
+			return p[i];
+		}
+	}
+	return _domObject.popup.nullItem;
+}
+
+//-----------------------------------------------
+function PopUpMenu_Create(_domObject)
+{
+	_domObject.popup.create();
+}
+
+function PopUpMenu_OnCreate(_domObject,_callBackFunction)
+{
+	_domObject.popup.addListener('oncreatepopup', _callBackFunction, _domObject.popup, false);
+}
+function PopUpMenu_OnShow(_domObject,_callBackFunction)
+{
+	_domObject.popup.addListener('onshowpopup', _callBackFunction, _domObject.popup, false);
+}
+
+function PopUpMenu_OnHide(_domObject,_callBackFunction)
+{
+	_domObject.popup.addListener('onhidepopup', _callBackFunction, _domObject.popup, false);
+}
+//-------------------------------------------------
+function PopUpMenu_SetName(_domObject,_name)
+{
+	_domObject.popup.setName(_name);
+}
+function PopUpMenu_GetName(_domObject)
+{
+	return _domObject.popup.getName();
+}
+
+function PopUpMenu_SetPopupObject(_domObject, _popupObjectName /*имя контрола для которого показываеться меню*/)
+{
+	_domObject.popup.setPopupObject(_popupObjectName);
+}
+function PopUpMenu_GetPopupObject(_domObject)
+{
+	return _domObject.popup.getPopupObject();
+}
+
+function PopUpMenu_SetIsShow(_domObject, _state /*true/false типа boolean!!!*/)
+{
+	_domObject.popup.setIsShow(_state);
+}
+function PopUpMenu_GetIsShow(_domObject)
+{
+	return _domObject.popup.getIsShow();
+}
+
+function PopUpMenu_SetHasImages(_domObject, _state /*true/false типа boolean!!!*/)
+{
+	_domObject.popup.setHasImages(_state);
+}
+function PopUpMenu_GetHasImages(_domObject)
+{
+	return _domObject.popup.getHasImages();
+}
+function PopUpMenu_Show(_domObject,x,y)
+{
+    _domObject.popup.show({left: x, top:y});
+}
+
+//PopUpItem----------------------------------------------------
+function PopUpItem_SetCaption(_domObject,_itemName,_caption)
+{
+        var item = PopUpMenu_GetItemByName(_domObject,_itemName);
+	item.caption = _caption;
+        item.vdom.cells[1].innerHTML = _caption;
+}
+function PopUpItem_GetCaption(_domObject,_itemName)
+{
+	return PopUpMenu_GetItemByName(_domObject,_itemName).caption;
+}
+
+function PopUpItem_SetImage(_domObject,_itemName,_src_image)
+{
+	PopUpMenu_GetItemByName(_domObject,_itemName).setImage(_src_image);
+}
+function PopUpItem_GetImage(_domObject,_itemName)
+{
+	return PopUpMenu_GetItemByName(_domObject,_itemName).getImage();
+}
+
+function PopUpItem_SetOnClick(_domObject,_itemName,_onclick)
+{
+	PopUpMenu_GetItemByName(_domObject,_itemName).action = _onclick;
+}
+
+function PopUpItem_SetDisable(_domObject,_itemName,_state /*true/false типа boolean!!!*/)
+{
+	PopUpMenu_GetItemByName(_domObject,_itemName).setDisable(_state);
+}
+function PopUpItem_GetDisable(_domObject,_itemName)
+{
+	return PopUpMenu_GetItemByName(_domObject,_itemName).getDisable();
+}
+
+function PopUpItem_SetHide(_domObject,_itemName,_state /*true/false типа boolean!!!*/)
+{
+	PopUpMenu_GetItemByName(_domObject,_itemName).setHide(_state);
+}
+function PopUpItem_GetHide(_domObject,_itemName)
+{
+	return PopUpMenu_GetItemByName(_domObject,_itemName).getHide();
+}
+function PopUpItem_SetHint(_domObject,_itemName,_hintStr)
+{
+    PopUpMenu_GetItemByName(_domObject,_itemName).vdom.title = _hintStr;
+}

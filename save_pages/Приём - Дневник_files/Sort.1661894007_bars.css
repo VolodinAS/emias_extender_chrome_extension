@@ -1,0 +1,49 @@
+td.sort {
+    cursor: pointer;
+    height: 20px;
+    min-height: 20px;
+    width: 20px;
+    min-width: 20px;
+    background: url(../../../Images/barsTheme/img2/btn.png) no-repeat left center;
+    vertical-align: middle;
+}
+td.sort img {
+    height: 16px;
+    width: 16px;
+    background-image: url(../images/bars/sort.png);
+    background-repeat: no-repeat;
+    margin: 0 2px;
+}
+td.sort div.sort-ordernone img,
+td.sort div.sort-nextsort img {
+    background: none;
+}
+
+.sort-orderasc img {
+    background-position: 4px -12px;
+}
+.sort_block {
+    position: relative;
+}
+.sort_block > .sort_level {
+    display: none;
+}
+.sort-orderasc .sort_block > .sort_level {
+    position: absolute;
+    top: -23px;
+    font-size: 9px;
+    right: 3px;
+    display: block;
+}
+
+.sort-orderdesc .sort_block > .sort_level {
+    position: absolute;
+    top: -14px;
+    font-size: 9px;
+    right: 3px;
+    display: block;
+}
+
+.sort-orderdesc img {
+    background-position: 4px 3px;
+}

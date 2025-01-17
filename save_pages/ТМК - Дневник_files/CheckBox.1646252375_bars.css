@@ -1,0 +1,16 @@
+span[cmptype="CheckBox"]{
+    line-height: 22px;
+    display: inline;
+    vertical-align: middle;
+}
+span[cmptype="CheckBox"] span{
+    line-height: 22px;
+    display: inherit !important;
+}
+span[cmptype="CheckBox"] input{
+    line-height: 22px;
+    height: 22px;
+    display: inherit !important;
+    margin: -2px 2px 0 0;
+    vertical-align: middle;
+}

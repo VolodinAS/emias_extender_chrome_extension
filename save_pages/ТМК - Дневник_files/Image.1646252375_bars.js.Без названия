@@ -1,0 +1,30 @@
+SYS_ControlActions['Image']=new Array();
+SYS_ControlActions['Image']['value']={set:Image_SetValue,get:Image_GetValue};
+SYS_ControlActions['Image']['hint']={set:_setHint,get:_getHint};
+SYS_ControlActions['Image']['visible']={set:Image_SetVisible,get:Image_GetVisible};
+
+function Image_SetVisible(_domObject, _value)
+{
+	if (_value != true && _value != 1) _value = false;
+	
+	_domObject.style.display = _value != false ? '' : 'none';
+}
+
+function Image_GetVisible(_domObject)
+{
+	return _domObject.style.display != 'none';
+}
+
+function Image_SetValue(_domObject,_value)
+{
+         _domObject.blob_id = _value;
+         var unit = getProperty(_domObject,'unit',false);
+         var field = getProperty(_domObject,'field',false);
+         var d= new Date();
+	_domObject.src = 'getmodule.php?Form=System/system&Module=ReadBlob&ID='+_value+((unit)?'&UNIT='+unit:'')+((field)?'&FIELD='+field:'')+'&systime='+d.getTime();
+}
+
+function Image_GetValue(_domObject)
+{
+	return _domObject.blob_id;
+}

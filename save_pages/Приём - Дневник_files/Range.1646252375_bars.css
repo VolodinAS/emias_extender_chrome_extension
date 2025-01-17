@@ -1,0 +1,166 @@
+table[cmptype="Range"]{
+    line-height: 20px;
+    height: 24px;
+    min-height: 24px;
+}
+table[cmptype="Range"] td.count_view{
+    width: 225px;
+    min-width: 225px;
+    white-space: nowrap;
+}
+table[cmptype="Range"] td.page_go{
+    width: 205px;
+    min-width: 205px;
+    white-space: nowrap;
+}
+table.NavigateContainer td[onclick^="Range"]{
+    min-width: 18px;
+}
+table.NavigateContainer td[onclick^="Range"] div{
+    min-width: 10px;
+    min-height: 20px;
+    height: 20px;
+    /*padding: 0;*/
+    text-align: center;
+    background: url('../images/btn.png') no-repeat 20px 20px;
+    cursor: pointer;
+    float: left;
+}
+table.NavigateContainer td[onclick^="Range"] div.l,table.NavigateContainer td[onclick^="Range"] div.r{
+    width: 4px;
+    min-width: 4px;
+}
+table.NavigateContainer td[onclick^="Range"]:hover div.l,table.NavigateContainer td.active div.l{
+    background-position: left 0;
+}
+table.NavigateContainer td[onclick^="Range"]:hover div.c,table.NavigateContainer td.active div.c{
+    background-position: left -40px;
+    background-repeat: repeat-x;
+}
+table.NavigateContainer td[onclick^="Range"]:hover div.r,table.NavigateContainer td.active div.r{
+    background-position: right -20px;
+}
+table.NavigateContainer td.disabled{
+    cursor: default;
+    background: none;
+}
+
+table.NavigateContainer td.hidden{
+    display: none;
+}
+TD.rangeshow{
+	margin: 0px;
+	padding:0px 0px 0px 0px;
+}
+td.page_go td.btne-button {
+    width: 16px;
+}
+td.page_go img.button-edit{
+    background: url('../images/clear.png') no-repeat 0 2px;
+    width: 16px;
+}
+TD.rangeshow  A{
+	margin-left: 4px; 
+	margin-right: 4px;
+	text-decoration: none;
+	color: #000000;	
+	/*font-size:14px;*/
+	padding:0px 2px 0px 2px;border-bottom:none;
+}
+TD.rangehide{
+	display:none;
+}
+option.rangehide{
+	display:none;
+}
+TD.rangeactiv{
+	padding:0px 0px 0px 0px;	
+}
+option.rangeactiv{
+	display:block;
+}
+TD.rangeactiv > A{
+    background: #DEEFE2;
+    color: #000;
+	margin-left: 4px; 
+	margin-right: 4px;
+	text-decoration: none;
+	/*font-size:14px;*/
+	padding:0px 2px 0px 2px;border-bottom:none;
+}
+
+TD.shownavigate{
+	padding:0px 1px 0px 1px;
+	font-weight:bold;
+}
+
+TD.shownavigateinactiv{
+	padding:0px 1px 0px 1px;
+	font-weight:bold;
+}
+TD[class^="shownavigate"] > A{
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    outline: none;
+}
+
+TD[class^="shownavigate"] > A.first{
+    background: url('../images/control_1.png') no-repeat;
+}
+TD[class^="shownavigate"] > A.prior{
+    background: url('../images/control_2.png') no-repeat;
+}
+TD[class^="shownavigate"] > A.next{
+    background: url('../images/control_3.png') no-repeat;
+}
+TD[class^="shownavigate"] > A.last{
+    background: url('../images/control_4.png') no-repeat;
+}
+TD[class^="shownavigate"] > A.prior_page, TD[class^="shownavigate"] > A.next_page{
+    background: url('../images/btn_listing_l.png') no-repeat;
+    width: 20px;
+    height: 20px;
+}
+TD[class^="shownavigate"] > A.next_page{
+    background: url('../images/btn_listing_r.png') no-repeat;
+}
+TD.shownavigate > A.prior_page:hover,
+TD.shownavigate > A.next_page:hover{
+    background-position: 0 -20px;
+}
+TD.shownavigate > A:hover{
+    background-position: 0 -16px;
+}
+TD.shownavigateinactiv > A.first,
+TD.shownavigateinactiv > A.prior,
+TD.shownavigateinactiv > A.next,
+TD.shownavigateinactiv > A.last{
+    background-position: 0 -32px;
+    cursor: default;
+}
+TD.shownavigateinactiv > A.prior_page,
+TD.shownavigateinactiv > A.next_page{
+    background-position: 0 -40px;
+    cursor: default;
+}
+TD.shownavigate > A{
+	text-decoration: none;
+        border-bottom:none;
+	color: #000;
+
+}
+
+TD.shownavigateinactiv > A{
+	text-decoration: none;border-bottom:none;
+	color: #C0C0C0;	
+}
+
+TABLE.shownavigate{
+	border-collapse:collapse;
+	display:inline-table;
+	empty-cells:show;
+	margin:0pt;
+	padding:0pt;
+	width:auto;
+}

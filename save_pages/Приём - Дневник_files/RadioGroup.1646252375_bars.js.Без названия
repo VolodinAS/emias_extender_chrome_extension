@@ -1,0 +1,106 @@
+SYS_ControlActions['RadioGroup'] = new Array();
+SYS_ControlActions['RadioGroup']['value'] = {
+    set: RadioGroup_SetValue,
+    get: RadioGroup_GetValue
+};
+SYS_ControlActions['RadioGroup']['enabled'] = {
+    set: RadioGroup_SetEnabled,
+    get: GetEnabled
+};
+SYS_ControlActions['RadioGroup']['hint'] = {
+    set: _setHint,
+    get: _getHint
+};
+
+SYS_ControlActions['RadioItem'] = new Array();
+SYS_ControlActions['RadioItem']['value'] = {
+    set: RadioItem_SetValue,
+    get: RadioItem_GetValue
+};
+SYS_ControlActions['RadioItem']['caption'] = {
+    set: RadioItem_SetCaption
+};
+SYS_ControlActions['RadioItem']['hint'] = {
+    set: _setHint,
+    get: _getHint
+};
+
+//RadioGroup---------------------------------------------------------------------
+function RadioGroup_SetValue(_domObject, _value) {
+    var _ind = 0;
+    var _child;
+    var _childs = _domObject.getElementsByTagName('input');
+    var _len = _childs.length;
+    while (_ind < _len) {
+        _child = _childs[_ind];
+        _ind += 1;
+
+        if (_child.value == _value && !hasProperty(_child.parentNode, 'sample')) {
+            _child.setAttribute('checked', true, false);
+            _child.checked = true;
+            _child.click();
+        } else {
+            if (hasProperty(_child, 'checked')) {
+                _child.removeAttribute('checked', false);
+            }
+            _child.checked = false;
+        }
+    }
+}
+
+function RadioGroup_GetValue(_domObject) {
+    var _ind = 0;
+    var _child;
+    var _len = _domObject.getElementsByTagName('input').length;
+
+    while (_ind < _len) {
+        _child = getChildTag(_domObject, 'input', _ind);
+        _ind += 1;
+
+
+        if (_child.checked) {
+            return _child.value;
+        }
+    }
+}
+
+function RadioGroup_SetEnabled(_dom, _state /*true/false типа boolean!!!*/ ) {
+    if (_getControlProperty(_dom, 'enabled') != _state) {
+        if (_state) {
+            _dom.setAttribute('enabled', 'true');
+        } else {
+            _dom.setAttribute('enabled', 'false');
+        }
+        var _item = _dom.querySelectorAll('[cmptype="RadioItem"]');
+
+        for (var _i = 0; _i < _item.length; _i++) {
+
+            var _radio = _item[_i].getElementsByTagName('input');
+            var _span = _item[_i].getElementsByTagName('span');
+
+            //делаем активным
+            if (_state) {
+                _radio[0].removeAttribute('disabled');
+                _span[0].className = '';
+            } else { //делаем неактивным
+                _radio[0].setAttribute('disabled', 'true');
+                _span[0].className = 'disable';
+            }
+        }
+    }
+}
+
+
+//RadioItem---------------------------------------------------------------------
+function RadioItem_SetValue(_domObject, _value) {
+    _domObject.childNodes[0].value = _value;
+}
+
+function RadioItem_GetValue(_domObject) {
+    return _domObject.childNodes[0].value;
+}
+
+function RadioItem_SetCaption(_domObject, _value) {
+    //_domObject.childNodes[_domObject.childNodes.length-1].nodeValue = _value;
+    _domObject.getElementsByTagName('span')[0].innerHTML = _value;
+}

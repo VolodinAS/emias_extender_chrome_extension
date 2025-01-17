@@ -1,0 +1,807 @@
+.noselect {
+   -moz-user-select:none;
+   -o-user-select:none;
+   -khtml-user-select:none;
+}
+SELECT.disable{
+	color:#000;
+}
+SPAN.disable
+{
+        color:#C0C0C0
+}
+
+a  {
+	color:#000000;
+	text-decoration:underline;
+        outline: none
+}
+a:hover  { text-decoration:none}
+
+/*-- Отступы для таблиц--*/
+table.form-table>tbody>tr>td,table.form-table>tr>td
+{
+       padding:1px 2px 1px 3px;
+}
+
+.bold-text
+{
+        font-weight:bold;
+}
+/*--End From table --*/
+
+/*-- Таблица с окантовкой без границ ячеек--*/
+table.clear-table
+{
+        border: 1px solid #000;
+        border-collapse: separate;
+}
+
+/*table.clear-table>td
+По идее не должно работать
+{
+        padding: 0px 3px 3px;
+}*/
+/*-- Begin grey Button Style  (см. форму Договора)--*/
+div.grey-selected-button a.grey-selected-button_a {
+        border-bottom:medium none;
+        color:white;
+        text-decoration:none;
+}
+div.grey-base-button a:link, div.grey-base-button a:visited,
+div.grey-base-button-left a:link, div.grey-base-button-left a:visited
+{
+        border-bottom:1px dashed #353535;
+        color:#353535;
+        text-decoration:none;
+}
+div.grey-base-button a:hover
+{
+        border-bottom:medium none;
+        color:#353535;
+        text-decoration:none;
+}
+div.grey-selected-button
+{
+        border-left: 1px solid rgb(215, 214, 214);
+        border-right: 1px solid rgb(215, 214, 214);
+        background-image: url(../Images/img/btn_gray_bg.gif);
+}
+div.grey-base-button
+{
+        border-right: 1px solid rgb(215, 214, 214);
+        background-image: url(../Images/img/btn_white_bg.gif);
+}
+div.grey-base-button-left
+{
+        border-right: 1px solid rgb(215, 214, 214);
+        border-left: 1px solid rgb(215, 214, 214);
+        background-image: url(../Images/img/btn_white_bg.gif);
+}
+div.grey-button
+{
+        float: left;
+        height: 22px;
+        text-align: center;
+        padding-top: 4px;
+        cursor: pointer;
+}
+/*-- End grey Button Style  --*/
+
+
+
+/* ------------- дивка для грида, по строкам которого можно тыкаться ------------------ */
+div.active_grid tr.even
+{
+        cursor: pointer;
+}
+
+div.active_grid tr.data:hover,div.active_grid tr.even:hover
+{
+        background: #D4EAFC;
+}
+
+div.loading {
+        position:fixed;
+        left:0px;
+        top:0px;
+        width:100%;
+        height:100%;
+        background-Color:#C0C0C0;
+        opacity:0.3;
+        filter:alpha(opacity=30);
+}
+div.loading .loading_img{
+    background-image: url("../Images/loading.gif");
+    width: 211px;
+    height: 62px;
+}
+/* ------------------------ для отчетов -------------------------------*/
+
+div.report_main_div
+{
+    font-size: 13px;
+}
+
+div.report_main_div span
+{
+        color: #3D3C3C;
+}
+
+div.report_main_div textarea
+{
+        width: 100%;
+        border: 0px;
+        color: #3D3C3C;
+}
+/* ------------------- Для форм ------------------- */
+div.controls_row
+{
+	margin-bottom: 5px;
+}
+
+/* ------------------- CompositionControl.inc-------- ------------------- */
+
+td.template_field
+{
+	padding: 3px;
+}
+
+div.compsettings{
+	cursor:pointer;
+	height:0;
+	position:fixed;
+	right:20px;
+	top:0px;
+	width:16px;
+    z-index:10;
+}
+.compsettings-modal_img{
+	 width: 20px;
+	 height: 20px;
+	 background: url('Icons/settings') no-repeat;
+}
+.compsettings_img{
+	 width: 20px;
+	 height: 20px;
+	 background: url('Icons/settings') no-repeat;
+}
+div.compsettings-modal{
+	cursor:pointer;
+	height:0;
+	position:fixed;
+	right:20px;
+	top:0px;
+	width:16px;
+        z-index: 2;
+}
+/*------------------  Для плавающих кнопок на окнах справочников ------------------------*/
+div.dict-button{
+	padding-top: 7px;
+	position: relative;
+	width: 100%;
+        text-align: right;
+}
+
+
+/* BARS THEME */
+	html, body
+	{
+		margin:0;
+		padding:0;
+		height:100%;
+		width:100%;
+		/*min-width:1024px;*/
+	}
+	body
+	{
+		font-family: Tahoma,Liberation Sans,DejaVu Sans,Lucida Sans,Corbel,Lucida Grande,Arial,sans-serif;
+		font-size:12px;
+		background:#327db0 url("../Images/barsTheme/Background.png") fixed center center no-repeat;
+                background-size: 100% 100%;
+                -moz-background-size: 100% 100%;
+	}
+
+        table{
+            border-collapse:collapse;
+        }
+	td
+        {
+            padding:0;
+	}
+
+	hr
+	{
+		border:0;
+		border-top:1px solid #d9d9d9;
+		margin:0 0 10px 0;
+                padding:0;
+	}
+
+	.Left
+	{
+		float:left;
+	}
+
+	.Right
+	{
+		float:right;
+	}
+
+	.Clear
+	{
+		clear:both;
+	}
+
+	/* Header */
+	div.Header
+	{
+		position:absolute;
+                width: 100%;
+                padding: 0 7px;
+                left:0;
+                top:0;
+	}
+        div.HeadContent
+        {
+            position: relative;
+            left:0;
+            top:0;
+            width: 100%;
+        }
+        div.OpenHeader div.HeadContent
+	{
+            -webkit-transition: padding-top 1s ease-in-out;
+            -moz-transition: padding 1s ease-in-out;
+            -o-transition: padding 1s ease-in-out;
+            transition: padding 1s ease-in-out;
+            padding:161px 11px 11px 8px
+        }
+        div.CloseHeader div.HeadContent
+	{
+            -webkit-transition: padding-top 1s ease-in-out;
+            -moz-transition: padding 1s ease-in-out;
+            -o-transition: padding 1s ease-in-out;
+            transition: padding 1s ease-in-out;
+            padding:66px 11px 11px 8px
+        }
+        div.OpenHeader div.Header
+        {
+            -webkit-transition: top 0.3s ease-in-out;
+            -moz-transition: top 0.3s ease-in-out;
+            -o-transition: top 0.3s ease-in-out;
+            transition: top 0.3s ease-in-out;
+            top: 0px;
+        }
+        div.CloseHeader div.Header
+        {
+            -webkit-transition: top 0.3s ease-in-out;
+            -moz-transition: top 0.3s ease-in-out;
+            -o-transition: top 0.3s ease-in-out;
+            transition: top 0.3s ease-in-out;
+            top: -95px;
+        }
+        div.HideHeader div.Header
+        {
+            top: -153px;
+            display: none;
+        }
+        div.HideHeader div.HeadContent
+	{
+            padding:16px 11px 11px 8px
+        }
+        div.Logo
+        {
+            position:absolute;
+            left:30px;
+            top: 15px;
+            width: 328px;
+            height: 52px;
+            background: url('../Images/barsTheme/Logo.png') no-repeat transparent;
+        }
+
+        div.Header div.UserInfo
+	{
+		position:absolute;
+		top: 15px;
+		font-size:11px;
+	}
+
+	div.Header div.Exit
+	{
+		position:absolute;
+		right:29px;
+		top: 15px;
+	}
+
+        div.Header div.Help
+	{
+		position:absolute;
+		right:25px;
+		top:68px;
+	}
+
+	div.Header div.Refresh
+	{
+		position:absolute;
+		right:30px;
+		top:114px;
+	}
+
+	div.Header a.header_ex_a, div.Header a.header_hlp_a
+	{
+		color:#3d3d3d;
+		font-size:14px;
+		line-height:23px;
+		padding:2px 0 2px 22px;
+		background:url("../Images/barsTheme/Exit.png") left center no-repeat;
+                outline: none;
+	}
+        div.Header a.header_hlp_a
+        {
+            font-size:12px;
+            padding-left: 20px;
+            background:url("Icons/hlp") left center no-repeat;
+        }
+
+	div.Header a.header_ref_a
+	{
+		color:#3d3d3d;
+		font-size:12px;
+		line-height:23px;
+		padding:2px 0 2px 27px;
+		background:url("../Images/barsTheme/Refresh.png") left center no-repeat;
+                outline: none;
+                text-decoration: none;
+	}
+
+    .header_info_a > svg {
+        fill: #5ab0e7;
+        width: 12px;
+        height: 12px;
+    }
+
+    .infoLink {
+        font-size: 12px;
+        padding-left: 20px;
+        position: absolute;
+        right: 25px;
+        top: 50px;
+        color: #3d3d3d;
+    }
+
+	div.Header div.HeaderLeft
+	{
+		width:11px;
+		height:153px;
+		background:url("../Images/barsTheme/Header/panel_l.png") left top no-repeat;
+		position:absolute;
+		left:7px;
+		top:0;
+	}
+	div.Header div.HeaderRightTransition
+	{
+		width:214px;
+		height:153px;
+		background:url("../Images/barsTheme/Header/panel_r.png") left top no-repeat;
+		position:absolute;
+		right:7px;
+		top:0;
+	}
+	div.Header div.HeaderContentTransition
+	{
+		background:url("../Images/barsTheme/Header/panel_bg.png") left top repeat-x;
+		height:153px;
+		margin:0 214px 0 11px;
+		position:relative;
+	}
+    div.Header div.UserInfo {
+        right: 135px;
+    }
+
+	div.Header div.MainMenu
+	{
+        /* padding-top: 90px; */
+        top:82px;
+        left: 10px;
+        position: absolute;
+	}
+
+    .HeadContainer{
+        padding: 0pt 6px 4px 8px;
+        -moz-box-sizing: border-box; /* Для Firefox */
+        -webkit-box-sizing: border-box; /* Для Safari и Chrome */
+        box-sizing: border-box; /* Для IE и Opera */
+        height: 100%;
+        min-height: 100%;
+    }
+
+    div.HeadContainer div.LicInfo{
+        position:absolute;
+        right:0px;
+        bottom:0px;
+        padding:0 20px 15px;
+        font-size:8pt;
+        z-index: -1;
+    }
+	/* End Header */
+
+	/* Content */
+        #_mainContainer
+        {
+            height: 100%;
+        }
+        #mainContainerContent>div{
+            height: 100%;
+            position: relative;
+        }
+        #mainContainerContent.hidden{
+            height: 0;
+            opacity: 0.0;
+        }
+        #mainContainerContent.showed{
+            -webkit-transition: opacity 0.5s ease-in-out;
+            -moz-transition: opacity 0.5s ease-in-out;
+            -o-transition: opacity 0.5s ease-in-out;
+            transition: opacity 0.5s ease-in-out;
+            opacity: 1.0;
+        }
+
+        div.HeadContent>div>div[class^="Content"]
+        {
+            position: absolute;
+        }
+	div.HeadContent div.ContentLeftTop
+	{
+		width:8px;
+		height:8px;
+		background:url("../Images/barsTheme/content/ContentLeftTop.png") left top no-repeat;
+                top:-8px;
+                left:-8px;
+	}
+
+	div.HeadContent div.ContentTop
+	{
+		height:8px;
+		background:url("../Images/barsTheme/content/ContentTop.png") left top repeat-x;
+                top:-8px;
+                width: 100%;
+	}
+
+	div.HeadContent div.ContentRightTop
+	{
+		width:11px;
+		height:8px;
+		background:url("../Images/barsTheme/content/ContentRightTop.png") left top no-repeat;
+                top:-8px;
+                right:-11px;
+	}
+
+	div.HeadContent div.ContentLeft
+	{
+		width:8px;
+		background:url("../Images/barsTheme/content/ContentLeft.png") left top repeat-y;
+                height: 100%;
+                left: -8px;
+                top:0;
+	}
+
+	div.HeadContent div.MContent
+	{
+		background:url("../Images/barsTheme/content/Content.png") left top;
+	}
+
+	div.HeadContent div.ContentRight
+	{
+		width:11px;
+		background:url("../Images/barsTheme/content/ContentRight.png") left top repeat-y;
+                right: -11px;
+                height: 100%;
+                top: 0;
+        }
+
+	div.HeadContent div.ContentLeftBottom
+	{
+		width:8px;
+		height:11px;
+		background:url("../Images/barsTheme/content/ContentLeftBottom.png") left top no-repeat;
+                bottom: -11px;
+                left: -8px;
+	}
+
+	div.HeadContent div.ContentBottom
+	{
+        z-index: -1;
+		height:11px;
+		background:url("../Images/barsTheme/content/ContentBottom.png") left top repeat-x;
+                width: 100%;
+                bottom: -11px;
+	}
+
+	div.HeadContent div.ContentRightBottom
+	{
+		width:11px;
+		height:11px;
+		background:url("../Images/barsTheme/content/ContentRightBottom.png") left top no-repeat;
+                right: -11px;
+                bottom: -11px;
+	}
+
+.blockBackground,.formBackground
+{
+    background: url('../Images/barsTheme/blockbackground.png') no-repeat;
+    -o-background-size: 100% 100%; -webkit-background-size: 100% 100%; -khtml-background-size: 100% 100%; background-size: 100% 100%;
+
+    background: -moz-linear-gradient(top,#fff,#ededed);
+    background: -webkit-gradient(linear, left top, left bottom, from(#fff), to(#ededed));
+    filter: progid:DXImageTransform.Microsoft.gradient(enabled='true',startColorstr=#ffffff,endColorstr=#ededed,GradientType=0); zoom: 1;
+    background: linear-gradient(top,#fff,#ededed);
+    background-clip: border-box; -moz-background-clip: border; -webkit-background-clip: border-box;
+    background-origin: border-box; -moz-background-origin: border; -webkit-background-origin: border-box;
+    -moz-border-radius: 5px;
+    -webkit-border-radius: 5px;
+    -o-border-radius: 5px;
+    border-radius: 5px;
+    border: 0 none;
+    behavior: url('Styles/PIE.htc');
+    overflow: hidden;
+}
+body:not([report]) .formBackground
+{
+    padding: 7px;
+    box-sizing: border-box;
+}
+.inpad
+{
+    padding: 5px;
+}
+.mtop
+{
+    margin-top: 7px;
+}
+.mbot
+{
+    margin-bottom: 7px;
+}
+
+.blockBackground_2
+{
+    background: url('../Images/barsTheme/blockbackground.png') no-repeat;
+    -o-background-size: 100% 100%; -webkit-background-size: 100% 100%; -khtml-background-size: 100% 100%; background-size: 100% 100%;
+
+    background: -moz-linear-gradient(top,#fff,#ededed);
+    background: -webkit-gradient(linear, left top, left bottom, from(#fff), to(#ededed));
+    filter: progid:DXImageTransform.Microsoft.gradient(enabled='true',startColorstr=#ffffff,endColorstr=#ededed,GradientType=0); zoom: 1;
+    background: linear-gradient(top,#fff,#ededed);
+    background-clip: border-box; -moz-background-clip: border; -webkit-background-clip: border-box;
+    background-origin: border-box; -moz-background-origin: border; -webkit-background-origin: border-box;
+    -moz-border-radius: 5px;
+    -webkit-border-radius: 5px;
+    -o-border-radius: 5px;
+    border-radius: 5px;
+    border: 0 none;
+    behavior: url('Styles/PIE.htc');
+}
+.block_expander
+{
+   background: url('../Images/barsTheme/blockbackground.png') no-repeat;
+    -o-background-size: 100% 100%; -webkit-background-size: 100% 100%; -khtml-background-size: 100% 100%; background-size: 100% 100%;
+
+    background: -moz-linear-gradient(top,#fff,#ededed);
+    background: -webkit-gradient(linear, left top, left bottom, from(#fff), to(#ededed));
+    filter: progid:DXImageTransform.Microsoft.gradient(enabled='true',startColorstr=#ffffff,endColorstr=#ededed,GradientType=0); zoom: 1;
+    background: linear-gradient(top,#fff,#ededed);
+    background-clip: border-box; -moz-background-clip: border; -webkit-background-clip: border-box;
+    background-origin: border-box; -moz-background-origin: border; -webkit-background-origin: border-box;
+
+    border-top: 1px solid #D6D6D6;
+    cursor: pointer;
+    height: 16px;
+    padding-top: 2px;
+    text-align: center;
+    vertical-align: middle;
+
+    -moz-border-radius: 5px;
+    -webkit-border-radius: 5px;
+    -o-border-radius: 5px;
+    border-radius: 5px;
+
+    color:#8E8E8E;
+    /*behavior: url('Styles/PIE.htc');*/
+}
+
+.block_expander.up>img.turn_up,.block_expander.down>img.turn_down
+{
+    display:none;
+}
+div[class="block_expander"]>img.turn_up
+{
+    display: none;
+}
+
+
+/* Controls Base Classes */
+.editControl
+{
+    border-collapse: separate;
+    background-color: white;
+    border-top: 1px solid #7e7e7e;
+    border-left: 1px solid #7e7e7e;
+    /*border-right: 1px solid #c8c8c8;
+    border-bottom: 1px solid #c8c8c8;*/
+    -moz-border-radius: 3px;
+    -webkit-border-radius: 3px;
+    -o-border-radius: 3px;
+    border-radius: 3px;
+    /*behavior: url('Styles/PIE.htc');*/
+}
+table.fixed{
+    table-layout: fixed;
+}
+td.td_edit_control{
+    border-top: 1px solid #c8c8c8;
+    border-bottom: 1px solid #c8c8c8;
+
+}
+td.td_edit_control:last-child{
+    -moz-border-radius-topright: 2px;
+    -moz-border-radius-bottomright: 3px;
+    -o-border-top-right-radius: 2px;
+    -o-border-bottom-right-radius: 3px;
+    border-top-right-radius: 2px;
+    border-bottom-right-radius: 3px;
+    -webkitborder-top-right-radius: 2px;
+    -webkitborder-bottom-right-radius: 3px;
+    border-right: 1px solid #c8c8c8;
+}
+td.td_edit_control:first-child{
+    border-left: 1px solid #c8c8c8;
+    border-top-left-radius: 2px;
+    border-bottom-left-radius: 2px;
+    -moz-border-radius-topleft: 2px;
+    -moz-border-radius-bottomleft: 2px;
+    -o-border-top-left-radius: 2px;
+    -o-border-bottom-left-radius: 2px;
+    -webkit-border-top-left-radius: 2px;
+    -webkit-border-bottom-left-radius: 2px;
+}
+
+div.report_main_div table[cmptype="TextArea"]
+{
+    width: 100%;
+}
+
+.editControlInner
+{
+    border: 1px solid #c8c8c8;
+    -moz-border-radius: 2px;
+    -webkit-border-radius: 2px;
+    -o-border-radius: 2px;
+    border-radius: 2px;
+    z-index: 100;
+    /*behavior: url('Styles/PIE.htc');*/
+}
+input[type="text"], input[type="password"], textarea
+{
+    font-family: Tahoma,Liberation Sans,DejaVu Sans,Lucida Sans,Corbel,Lucida Grande,Arial,sans-serif;
+    border: 0 none;
+    outline: none;
+    height:19px;
+    font-weight:normal;
+    min-width: 0%;
+    width:100%;
+    font-size:12px;
+    -moz-border-radius: 2px;
+    -webkit-border-radius: 2px;
+    -o-border-radius: 2px;
+    border-radius: 2px;
+
+    -moz-box-sizing: border-box; /* Для Firefox */
+    -webkit-box-sizing: border-box; /* Для Safari и Chrome */
+    box-sizing: border-box; /* Для IE и Opera */
+}
+textarea{
+    height: auto;
+    min-height: 40px;
+    resize: none;
+    padding: 0;
+}
+input[readonly="true"],
+input[type="text"].disable,
+textarea.disable,
+table.combo-box input[type="text"][readonly="true"], table.combo-box input[type="text"].disable /* для комбобоксов */
+{
+    background-color:#EEEEEE;
+    /*color:#000;*/
+}
+.box-sizing
+{
+            -moz-box-sizing: border-box; /* Для Firefox */
+            -webkit-box-sizing: inherit; /* Для Safari и Chrome */
+            /*box-sizing: border-box; /* Для IE и Opera */
+}
+.box-sizing-force
+{
+            -moz-box-sizing: border-box; /* Для Firefox */
+            -webkit-box-sizing: border-box; /* Для Safari и Chrome */
+            box-sizing: border-box; /* Для IE и Opera */
+}
+
+fieldset{
+    border: 1px solid #CFD7DB;
+}
+
+span[cmptype="Label"]{
+    line-height: 22px;
+}
+
+
+div.column_btn{
+    display: inline-block;
+    cursor: pointer;
+    height: 20px;
+    min-height: 20px;
+    min-width: 20px;
+    vertical-align: middle;
+    width: 20px;
+}
+div.column_btn img{
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+}
+
+.hoverParodont:hover {
+    outline: 3px solid #7AACFD;
+    outline-offset: -3px;
+}
+
+/* Chrome Fix */
+@media screen and (-webkit-min-device-pixel-ratio:0) {
+
+	body:first-of-type
+		.noheight {
+			height: 100% !important;
+	}
+
+    body:first-of-type div.HeadContent {
+        height: 100%;
+    }
+}
+
+@media (max-height: 750px) {
+    body:first-of-type
+        /* Grid */
+        div.GridData.box-sizing-force {
+            min-height: 100px;
+    }
+}
+
+@media (max-height: 500px) {
+    body:first-of-type
+        /* Grid */
+        div.GridData.box-sizing-force {
+            min-height: 70px;
+    }
+}
+
+div.Header a.header-msg-a {
+    padding: 12px;
+    background:url("../Images/barsTheme/mail.png") left center no-repeat;
+    margin-right: 5px;
+}
+div.Header a.header-msg-a:hover {
+    opacity: .7;
+}
+div.Header a.header-msg-a-new-message {
+    text-decoration:none;
+}
+div.Header a.header-msg-a-new-message:after {
+    color: #DB1E16;
+    content: '*';
+    position: absolute;
+    left: 16px;
+    top:-3px;
+    text-shadow: 1px 1px 1px #d3d3d3;
+    font-size: 16px;
+}

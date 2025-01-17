@@ -1,0 +1,55 @@
+.GridProfileSettingsBtn-button img{
+    background: url('../images/profile.png') no-repeat;
+}
+.GridProfileSettingsMenu{
+    position: fixed;
+    z-index: 9999;
+    top: 20px;
+    background-color: #F1F9FF;
+    border: 1px solid #69B3DB;
+    border-radius: 4px 4px 4px 4px;
+    box-shadow: 2px 2px 7px -2px #000000;
+    font-size: 12px;
+    padding: 3px 0;
+    outline: none;
+}
+.GridProfileConfigure
+{
+    border-bottom: 1px solid #DDDDDD;
+}
+.GridProfileItem,.GridProfileConfigure
+{
+    padding: 0 10px 0 15px;
+    line-height: 24px;
+}
+.GridProfileConfigure:hover,.GridProfileItem:hover
+{
+    background: url("../images/item.png") repeat-x scroll 0 0 transparent;
+}
+.GridProfileItem.active
+{
+    background: url("../images/arrow_right.png") no-repeat scroll center left transparent;
+}
+div.grid a.settings-button{
+    cursor:pointer;
+    float:left;
+    height:0;
+    position:relative;
+    width:16px;
+    width: 16px;
+    height: 27px;
+    margin-right: 5px;
+}
+div.grid a.settings-button>img{
+    cursor:pointer;
+    width: 16px;
+    height: 27px;
+    background: url('../../../Images/barsTheme/img2/unitprops.png') no-repeat center center;
+    float:right;
+    margin: 0;
+}
+div.grid.m2 .grid_filters_cont {
+    display: block;
+    position: relative;
+    overflow: visible;
+}

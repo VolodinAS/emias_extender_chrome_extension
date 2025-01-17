@@ -1,0 +1,567 @@
+SYS_ControlActions['FillingTextArea']=new Array();
+SYS_ControlActions['FillingTextArea']['value']={
+    set:FillingTextArea_SetValue,
+    get:FillingTextArea_GetValue
+};
+SYS_ControlActions['FillingTextArea']['caption']={
+    set:FillingTextArea_SetCaption,
+    get:FillingTextArea_GetCaption
+};
+SYS_ControlActions['FillingTextArea']['hint']={
+    set:_setHint,
+    get:_getHint
+};
+SYS_ControlActions['FillingTextArea']['input']={
+    get:FillingTextArea_GetInput
+};
+SYS_ControlActions['FillingTextArea']['enabled']={
+    get:FillingTextArea_GetEnabled,
+    set:FillingTextArea_SetEnabled
+};
+SYS_ControlActions['FillingTextArea']['color']={
+    get:FillingTextArea_GetColor,
+    set:FillingTextArea_SetColor
+};
+
+function fta_getControl(_domObject)
+{
+    return GetConteiner(_domObject, 'FillingTextArea');
+}
+
+function FillingTextArea_SetValue(_domObject, _value)
+{
+    var _ta=_domObject.getElementsByTagName('textarea')[0];
+    _ta.innerHTML = _value;
+    _ta.value = _value;
+}
+
+function FillingTextArea_SetEnabled(_domObject, _value)
+{
+    _domObject.getElementsByTagName('textarea')[0].enabled = _value;
+    //getControlByName(_domObject.name+'_Text')[0].readonly = _value;
+    var textarea = FillingTextArea_GetInput(_domObject);
+    var sinput = _domObject.querySelector('.fta_sinput');
+    //делаем активным
+    if (_value)
+    {
+        textarea.removeAttribute('readonly');
+        textarea.className = '';
+        removeClass(_domObject,'disabled');
+        sinput.removeAttribute('readonly');
+        _domObject.setAttribute('enabled', 'true');
+    }//делаем неактивным
+    else
+    {
+        textarea.setAttribute('readonly','true');
+        textarea.className = 'disable';
+        addClass(_domObject,'disabled');
+        sinput.setAttribute('readonly','true');
+        _domObject.setAttribute('enabled', 'false');
+    }
+}
+
+function FillingTextArea_GetEnabled(_domObject)
+{
+    return _domObject.getElementsByTagName('textarea')[0].enabled;
+}
+
+function FillingTextArea_SetColor(_domObject, _value)
+{
+    _domObject.getElementsByTagName('textarea')[0].style.backgroundColor = _value;
+}
+
+function FillingTextArea_GetColor(_domObject, _value)
+{
+    return _domObject.getElementsByTagName('textarea')[0].style.backgroundColor;
+}
+
+/**
+ * Получение значения
+ * @param {HTMLElement} _domObject - Dom элемент
+ * @param {bool} isNotTrim - true - не вызываем trim, в компоненте
+ * @returns {*}
+ */
+function FillingTextArea_GetValue(_domObject, isNotTrim) {
+    if (isNotTrim === undefined) {
+        return (_domObject.getElementsByTagName('textarea')[0].value).trim();
+    } else {
+        return (_domObject.getElementsByTagName('textarea')[0].value);
+    }
+}
+
+function FillingTextArea_GetInput(_domObject)
+{
+    return _domObject.getElementsByTagName('textarea')[0];
+}
+
+function FillingTextArea_SetCaption(_domObject, _value)
+{
+    var _thead=_domObject.getElementsByTagName('thead')[0].getElementsByTagName('td')[0];
+    _thead.innerHTML = _value;
+}
+
+function FillingTextArea_GetCaption(_domObject)
+{
+    return _domObject.getElementsByTagName('thead')[0].getElementsByTagName('td')[0].innerHTML;
+}
+
+function FillingTextArea_ondblClick(_dom)
+{
+    /*var _cont = GetConteiner(_dom, 'FillingTextArea');
+	var _listvalue = _getControlProperty(_dom, 'value');
+	var _convalue = _getControlProperty(_cont, 'value');
+
+	_setControlProperty(_cont, 'value',  _convalue +' '+_listvalue);*/
+    /*
+	var _listvalue = _getControlProperty(_dom, 'value');
+	var _cont = GetConteiner(_dom, 'FillingTextArea');
+	var _con_name = getProperty(_cont, 'name');
+	var _area = _cont.getElementsByTagName('textarea')[0];
+	_area.caretPos = document.getSelection().createTextRange().duplicate();
+	if (_area.createTextRange && _area.caretPos) {
+	var caretPos=_area.caretPos;
+	caretPos.text=caretPos.text.charAt(caretPos.text.length - 1) == ' ' ? _listvalue + ' ' : _listvalue;
+	}
+	else
+	_area.value = _listvalue;*/
+    /*
+ var txtarea = _cont.getElementsByTagName('textarea')[0];
+ text = ' ' + _getControlProperty(_dom, 'value') + ' ';  
+ if (txtarea.createTextRange && txtarea.caretPos) {  
+ var caretPos = txtarea.caretPos;  
+ caretPos.text = caretPos.text.charAt(caretPos.text.length - 1) == ' ' ? text + ' ' : text;  
+ txtarea.focus();  
+ } else {  
+ txtarea.value  += text;  
+ txtarea.focus();  }*/
+
+    var _cont = GetConteiner(_dom, 'FillingTextArea');
+    var _area = _cont.getElementsByTagName('textarea')[0];
+    if(_area.enabled==false)return;
+    var _listvalue = _getControlProperty(_dom, 'value');
+    if(!empty(_area.carretHandler)){
+        _area.carretHandler.setSelectedText(' '+_listvalue+' ');
+    }
+    else{
+        _area.carretHandler = new TextAreaSelectionHelper(_area);
+        _area.carretHandler.setSelectedText(' '+_listvalue+' ');
+    }
+}
+function FillingTextArea_setData(dom,data)
+{
+    // if FillingTextArea is in the container
+    var _el = getControlByCmptype(dom, 'clone', true);
+
+    if(_el && _el.getAttribute('sample') == 'true' && _el.hasAttribute('groupname'))
+    {
+        var _el_name = _el.getAttribute('name');
+        var _cont_childs = _el.parentNode.childNodes;
+
+        for(var i = 0; i < _cont_childs.length; i++)
+        {
+            if(typeof(_cont_childs[i].getAttribute) == 'function')
+            {
+                if(_cont_childs[i].getAttribute('name') == _el_name && !_cont_childs[i].getAttribute('sample'))
+                {
+                    dom = _cont_childs[i].querySelector('.fta_itemcont');
+                }
+            }
+        }
+    }
+
+    dom = getControlByCmptype(dom, 'FillingTextArea', true);
+    var textarea = dom.querySelector('textarea');
+    var itemCont = dom.querySelector('.fta_itemcont');
+    var itemContParent = itemCont.parentNode;
+    itemCont = itemContParent.removeChild(itemCont);
+    itemCont.innerHTML = '';
+    var item = dom.querySelector('.fta_item');
+    setDomVisible(item,true);
+    var showField = getProperty(dom,'showfield','SHOW_VALUE');
+    var returnField = getProperty(dom,'returnfield','VALUE');
+    var parentField = getProperty(dom,'parentfield','PID');
+    var keyField = getProperty(dom,'keyfield','ID');
+    var collapse =  getProperty(dom,'collapse');
+    var allNodes = {};
+    var maxLevels = 20;
+    var _dataArray;
+    var remainRows = {};
+    var passes = 0;
+    var pasCount = data.length;
+    var curPasCount = 0;
+    var fI = true;
+    var lineHeight = parseInt(getStyle(dom.querySelector('.fta_itemcaption'), 'line-height'))||16;
+    var hint_max_length = getProperty(dom,'hint_max_length',0);
+
+    (function createTree(data) {
+        for (var j = 0, k = data.length; j < k; j++) {
+            _dataArray = data[j];
+
+            if(_dataArray[parentField] && !allNodes[_dataArray[parentField]]) {
+                remainRows[_dataArray[parentField]] = remainRows[_dataArray[parentField]] || [];
+                remainRows[_dataArray[parentField]].push(_dataArray);
+                continue;
+            }
+            var cont = itemCont;
+            if(_dataArray[parentField] && allNodes[_dataArray[parentField]]){
+                cont = allNodes[_dataArray[parentField]];
+                if(collapse ==  'true')
+                    addClass(cont,'haschilds');
+                else
+                    addClass(cont,'haschilds expand');
+
+                addClass(itemCont,'hasexpand');
+            }
+            var newItem = item.cloneNode(true);
+            fI && (addClass(newItem,'selected'),fI=false);
+            setAttribute(newItem,'keyvalue',_dataArray[keyField]);
+            allNodes[_dataArray[keyField]] = newItem;
+
+            newItem.childNodes[0].innerHTML = _dataArray[showField];
+            setAttribute(newItem,'value',_dataArray[returnField]===undefined?_dataArray[showField]:_dataArray[returnField]);
+            setAttribute(newItem,'f_value',_dataArray[showField]);//Руслан #132644 фильтрация по значению showField
+            if (hint_max_length > 0 && _dataArray[returnField] !== undefined)
+                _setHint(newItem,_dataArray[returnField].substr(0,hint_max_length));
+
+            createTree(remainRows[_dataArray[keyField]]||[]);
+            cont.appendChild(newItem);
+        }
+    })(data);
+
+    setDomVisible(item,false);
+    //setTimeout(function(){
+        itemContParent.appendChild(itemCont)
+        var dna = [];
+        var pn = dom;
+        while(pn.nodeName != '#document')
+        {
+            if (pn.style.display == 'none')
+            {
+                pn.style.display = '';
+                dna.push(pn);
+            }
+            pn = pn.parentNode;
+        }
+        itemCont.scrollTop = 0;
+        //textarea.rows = Math.ceil(itemCont.offsetHeight / lineHeight)||3;
+        for(var i=0; i<dna.length; i++)
+        {
+            dna[i].style.display = 'none';
+        }
+        dna = null;
+    //},100);
+}
+
+function FillingTextArea_touchItem(dom)
+{
+    var fta = getControlByCmptype(dom, 'FillingTextArea', true);
+    if(hasClass(fta,'disabled'))
+        return;
+
+    dom.ftacont = dom.ftacont || fta.querySelector('.fta_itemcont');
+    var selItem = dom.ftacont.querySelector('.fta_item.selected');
+    selItem && removeClass(selItem,'selected');
+    addClass(dom, 'selected');
+}
+function FillingTextArea_toggleItem(dom,hide)
+{
+    var fta = getControlByCmptype(dom, 'FillingTextArea', true);
+    if(hasClass(fta,'disabled'))
+        return;
+    (hasClass(dom,'expand')||hasClass(dom,'expand_search'))&&(hide==true || hide===undefined)?removeClass(dom, 'expand')||removeClass(dom, 'expand_search'):(hide!==true && addClass(dom, 'expand'));
+}
+function FillingTextArea_dblClickItem(dom,event)
+{
+    var fta = getControlByCmptype(dom, 'FillingTextArea', true);
+    if(hasClass(fta,'disabled'))
+        return;
+    //clearTimeout(FillingTextArea_dblClickTimer);
+    //FillingTextArea_dblClickTimer = null;
+
+    FillingTextArea_selectItem(dom,event.ctrlKey);
+}
+function FillingTextArea_keyPressItem(event,dom)
+{
+    var fta = getControlByCmptype(dom, 'FillingTextArea', true);
+    if(hasClass(fta,'disabled'))
+        return;
+
+    var selItem = dom.querySelector('.fta_item.selected');
+    var selItemS = dom.querySelector('.fta_item.selected');
+    var newItem = null;
+    //selItem && removeClass(selItem,'selected');
+    switch(event.keyCode)
+    {
+        case 37:
+                FillingTextArea_toggleItem(selItem,true);
+                stopEvent(event);
+            break;
+        case 39:
+                FillingTextArea_toggleItem(selItem,false);
+                stopEvent(event);
+            break;
+
+        case 38://up
+            var d= 0;
+                do
+                {
+                    d++;
+                    if (d > 100)
+                        break;
+                    if(event.ctrlKey)
+                    {
+                        newItem = selItem.previousSibling;
+                        if(newItem && !hasClass(newItem,'fta_item') && selItem.parentNode != dom)
+                        {
+                            newItem = selItem.parentNode;
+                        }
+                        if(newItem && !hasClass(newItem,'fta_item'))
+                            newItem = null;
+                        continue;
+                    }
+                    newItem = selItem.previousSibling;
+                    if(newItem && hasClass(newItem,'fta_item'))
+                    {
+                        var items = newItem.querySelectorAll('.fta_item');
+                        var i = items.length-1;
+                        while (i >= 0 && getStyle(items[i],'display') == 'none')
+                        {
+                            i--;
+                        }
+                        if(i >= 0)
+                            newItem = items[i];
+                        continue;
+                    }
+                    newItem = null;
+                    if(selItem.parentNode != dom && hasClass(selItem.parentNode,'fta_item'))
+                        newItem = selItem.parentNode;
+                }while(newItem && getStyle(newItem,'display') == 'none' && ((selItem = newItem) || (newItem = null)))
+                stopEvent(event);
+            break;
+        case 40://down
+                var d= 0;
+                do
+                {
+                    d++;
+                    if (d > 100)
+                        break;
+                    if(event.ctrlKey)
+                    {
+                        newItem = selItem.nextSibling;
+                        if(!newItem && selItem.parentNode != dom)
+                        {
+                            newItem = selItem.parentNode.nextSibling;
+                        }
+                        continue;
+                    }
+                    if(hasClass(selItem,'expand') || hasClass(selItem,'expand_search'))
+                    {
+                        newItem = selItem.querySelector('.fta_item');
+                    }else
+                        newItem = selItem.nextSibling;
+                    var tmpItem = selItem;
+                    while (!newItem && tmpItem.parentNode != dom)
+                    {
+                        tmpItem = tmpItem.parentNode;
+                        newItem = tmpItem.nextSibling;
+                    }
+                }while(newItem && getStyle(newItem,'display') == 'none' && ((selItem = newItem) || (newItem = null)))
+                stopEvent(event);
+            break;
+        case 13:
+                FillingTextArea_selectItem(selItem,event.ctrlKey);
+                stopEvent(event);
+            break;
+    }
+    if(selItem && newItem)
+    {
+        removeClass(selItemS,'selected');
+        addClass(newItem,'selected');
+        newItem.scrollIntoView();
+    }
+}
+function FillingTextArea_selectItem(dom,all)
+{
+    var dom = getControlByCmptype(dom, 'FillingTextArea', true);
+    if(hasClass(dom,'disabled'))
+        return;
+    var item = dom.querySelector('.fta_item.selected');
+
+    if(!item)
+        return;
+
+    var itemCont = item.ftacont;
+    var action = getProperty(dom,'action');
+
+    var getFillingTextAreaArr = function(isAction) {
+        var result = [];
+        var strArr = Array.from(dom.closest('table.fillingTextArea').querySelectorAll('.fta_itemcont .fta_item'));
+        strArr.forEach(function(elem) {
+            if (elem.parentElement.classList.contains('haschilds')) {
+                if ((elem.parentElement.classList.contains('expand')) && (getComputedStyle(elem.parentElement).display !== 'none')) {
+                    result.push(elem.getAttribute(isAction ? 'keyvalue' : 'value'));
+                }
+            } else {
+                result.push(elem.getAttribute(isAction ? 'keyvalue' : 'value'));
+            }
+        });
+        return result;
+    };
+
+    if(action)
+    {
+        var keyField = getProperty(dom,'keyfield','ID');
+
+        if (getProperty(item,'keyvalue')==0){//если нет keyvalue, возникает когда справочник состоит из допселекта, прописанного в настройках поля
+            FillingTextArea_insertValue(dom,getProperty(item,'value'));
+        }else{
+            var ids = '';
+            if (+all === 2) {
+                ids = getFillingTextAreaArr(true).join(';');
+            } else if (+all === 1) {
+                var idsArr = [];
+                while(item != itemCont)
+                {
+                    idsArr.push(getProperty(item,'keyvalue'));
+                    item = item.parentNode;
+                    if (itemCont === undefined) {
+                        break;
+                    }
+                }
+                idsArr.reverse();
+                ids = idsArr.join(';');
+            }else
+                ids = getProperty(item,'keyvalue');
+            setVar(action+'_id',ids);
+            executeAction(action,function(){
+                FillingTextArea_insertValue(dom,getVar(action+'_result'));
+            });
+        }
+    }else
+    {
+        var _listvalue = '';
+        if (+all === 2) {
+            _listvalue = getFillingTextAreaArr(false).join('\n');
+        } else if (+all === 1) {
+            var vals = [];
+            while(item != itemCont)
+            {
+                vals.push(getProperty(item,'value'));
+                item = item.parentNode;
+                if (itemCont === undefined) {
+                    break;
+                }
+            }
+            vals.reverse();
+            _listvalue = vals.join(' ');
+        } else {
+            _listvalue = getProperty(item,'value');
+        }
+        var ftaInput = FillingTextArea_GetInput(dom);
+        if ((FillingTextArea_GetValue(dom).length !== 0) && (ftaInput.value.charAt(ftaInput.selectionStart - 1) !== '\n')) {
+            _listvalue = ' ' + _listvalue;
+        }
+        FillingTextArea_insertValue(dom,_listvalue);
+    }
+}
+function FillingTextArea_insertValue(dom,value)
+{
+    var _area = dom.getElementsByTagName('textarea')[0],
+        _max_length = _area.getAttribute('max_length');
+
+    if(empty(_area.carretHandler)) {
+        _area.carretHandler = new TextAreaSelectionHelper(_area);
+    }
+
+    if(!empty(_max_length)) {
+        value = value.substring(0, _max_length - (_area.value.length + 1) + _area.carretHandler.getSelectedText().length);
+    }
+
+    value = value.replace(/\<br\/\>/g, '\r\n');
+    value = value.replace(/(\<\W*span.*?\>|\<\/\W*span\>)/g, '');
+
+    _area.carretHandler.setSelectedText(value, null);
+}
+function FillingTextArea_clickSearch(dom)
+{
+    var dom = getControlByCmptype(dom, 'FillingTextArea', true);
+    if(hasClass(dom,'disabled'))
+        return;
+    var itemCont = dom.querySelector('.fta_itemcont');
+    var searchInput = dom.querySelector('.fta_sinput');
+    var selItem = dom.querySelector('.fta_item.selected');
+    selItem && removeClass(selItem,'selected');
+    var items = itemCont.querySelectorAll('.expand');
+    for(var i=0, c = items.length; i < c; i++)
+    {
+        removeClass(items[i], 'expand');
+    }
+
+    removeClass(itemCont, 'search');
+    items = itemCont.querySelectorAll('.search_result');
+    for(var i=0, c = items.length; i < c; i++)
+    {
+        removeClass(items[i], 'search_result');
+    }
+    items = itemCont.querySelectorAll('.search_result_node');
+    for(var i=0, c = items.length; i < c; i++)
+    {
+        removeClass(items[i], 'search_result_node');
+    }
+    items = itemCont.querySelectorAll('.expand_search');
+    for(var i=0, c = items.length; i < c; i++)
+    {
+        removeClass(items[i], 'expand_search');
+    }
+    if(searchInput.value == '')
+    {
+        items = itemCont.querySelectorAll('.haschilds');
+        for(var i=0, c = items.length; i < c; i++)
+        {
+            addClass(items[i], 'expand');
+        }
+        selItem && addClass(selItem,'selected');
+        return;
+    }
+
+    var sitems = itemCont.querySelectorAll('.fta_item');
+    var r = new RegExp(searchInput.value.replace(/([^\\])\*/g,'$1.*'),'i');
+
+    addClass(itemCont,'search');
+
+    for(var i=0, c = sitems.length; i < c; i++)
+    {
+        var item = sitems[i];
+        if(!(r.test(getProperty(item,'value')) || r.test(getProperty(item,'f_value')))) //Руслан #132644 фильтрация по значению showField
+            continue;
+
+        addClass(item, 'search_result');
+
+        while(item.parentNode != itemCont)
+        {
+            item = item.parentNode;
+            addClass(item,'expand_search');
+            addClass(item,'search_result_node');
+        }
+    }
+}
+
+function FillingTextArea_editAddDirectory(_this, _dirdict, _name)
+{
+    if(!empty(_dirdict))
+    {
+        setVar('DIR_DICT', _dirdict);
+        openWindow('AddDirUser/add_dir_user', true, 1280, 768)
+            .addListener('onafterclose', function()
+            {
+                refreshDataSet(_name + '_dataset');
+            });
+    }
+}
+
+function FillingTextArea_clearSearch(_dom)
+{
+	var dom = getControlByCmptype(_dom, 'FillingTextArea', true);
+    var searchInput = dom.querySelector('.fta_sinput');
+	searchInput.value = '';
+}

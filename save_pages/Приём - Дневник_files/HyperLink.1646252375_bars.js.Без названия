@@ -1,0 +1,35 @@
+SYS_ControlActions['HyperLink']=new Array();
+SYS_ControlActions['HyperLink']['value']={set:HyperLink_SetValue,get:HyperLink_GetValue};
+SYS_ControlActions['HyperLink']['caption']={set:HyperLink_SetCaption,get:HyperLink_GetCaption};
+SYS_ControlActions['HyperLink']['hint']={set:_setHint,get:_getHint};
+SYS_ControlActions['HyperLink']['visible']={set:HyperLink_SetVisible,get:HyperLink_GetVisible};
+
+function HyperLink_SetValue(_domObject,_value)
+{
+	//if(_value==null)alert('null');else alert(_value);
+	_domObject.setAttribute('value', _value);
+}
+
+function HyperLink_GetValue(_domObject)
+{
+	return getProperty(_domObject, 'value');
+}
+function HyperLink_SetCaption(_domObject,_caption)
+{
+	_domObject.innerHTML =_caption;
+}
+
+function HyperLink_GetCaption(_domObject)
+{
+	return _domObject.innerHTML;
+}
+
+function HyperLink_SetVisible(_domObject, _value)
+{
+	return _domObject.style.display = (_value == false || _value == 0) ? 'none' : '';
+}
+
+function HyperLink_GetVisible(_domObject)
+{
+	return (_domObject.style.display == '');
+}

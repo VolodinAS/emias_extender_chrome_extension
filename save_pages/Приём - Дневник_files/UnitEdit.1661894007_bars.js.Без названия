@@ -1,0 +1,83 @@
+function UnitEdit_Valid(_dom, _valid)
+{
+	_con = _dom;
+	var name=getProperty(_con,'name','');
+	if (_valid)
+	{
+		var _cap =getControlCaption(_con); //ButtonEdit_GetCaption(_con);
+
+		if (!_cap)
+		{
+			//ButtonEdit_SetValue(_con, "");
+			_con.setAttribute('valid', 2);
+			setControlValue(_con, "");
+			getPage(0).dispatchEvent('onchangeproperty'+name,_con,name,'value','');
+			////getPage(0).dispatchEvent('onchangeproperty'+nameControl,nameControl,_domObject,propertyName,propertyValue);
+
+		}
+		else _con.setAttribute('valid', 1);
+	}
+	else
+	{
+		//ButtonEdit_SetValue(_con, '');
+		_con.setAttribute('valid', 0);
+		setControlValue(_con, "");
+		getPage(0).dispatchEvent('onchangeproperty'+name,_con,name,'value','');
+	}
+}
+
+
+function Validate(_dom)
+{
+	_action_name = getProperty(_dom, 'validateaction', null);
+	_type = getProperty(_dom, 'cmptype', null);
+	_type+'onExit'
+	//alert(_action_name);
+	//executeAction(_action_name,function (){UnitEdit_Valid(_dom, true); _dom.className = '';},function (){UnitEdit_Valid(_dom, false); _dom.className = 'incorrect-value';},_dom);
+}
+
+function compositionCallMethod(_this,_object,_width,_height,_addlistener)
+{
+	var parent = buttonEdit_getControl(_this);
+	var _win=openWindow(_object, true,_width,_height);
+	_win.addListener('onclose',base(0).formClose_DontUseThisFunc,parent,false);
+	if(!empty(_addlistener)){
+		_win.addListener('onclose',function (){
+            var args = [];
+			for(var i = 0,len = arguments.length ; i < len ; i++){
+				if(!empty(arguments[i])){
+					args.push(arguments[i]);
+				}
+			}
+            args.push(parent);
+            _addlistener.apply(this,args)
+		},parent,false);
+    }
+}
+
+function extradictCallMethod(_this, _extradict, _multisel, _params) {
+    var composition = _params && _params.composition ? _params.composition : 'DEFAULT_child';
+    setVar('SysExtraDictCode', _extradict);
+    setVar('SysExtraDictParentVar', _extradict); //'ExtraDict/ExtraDict_Dictionary'
+    var req = {
+        name: 'UniversalComposition/UniversalComposition',
+        unit: 'EXTRA_DICT_VALUES',
+        composition: composition,
+        show_buttons: true,
+        parent_var: 'SysExtraDictParentVar',
+        vars: _params && _params.vars ? _params.vars : '',
+        onshow: _params && _params.onshow ? _params.onshow : '',
+    };
+    if (_multisel) {
+        req.multisel = true;
+    }
+    openWindow(req, true)
+        .addListener('onclose', base(0).formClose_DontUseThisFunc, buttonEdit_getControl(_this), false);
+}
+
+function dirdictCallMethod(_this,_dirdict)
+{
+	setVar('SysAddDirectoriesDictCode', _dirdict);
+	openWindow('AddDirectoriesDict/ADD_DIRECTORIES_DICT', true)
+		.addListener('onclose',base(0).formClose_DontUseThisFunc,buttonEdit_getControl(_this),false);
+}

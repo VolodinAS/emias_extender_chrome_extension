@@ -1,0 +1,52 @@
+SYS_ControlActions['Hint']=new Array();
+SYS_ControlActions['Hint']['value']={set:Hint_SetValue};
+SYS_ControlActions['Hint']['visible']={set:Hint_SetVisible};
+
+function Hint_SetVisible(_domObject, _value, _target)
+{
+    var _hint = _domObject,
+        classList = _hint.classList;
+
+    if(_value){
+        // позиционирование
+        if(_target){
+            var targetCoords = _target.getBoundingClientRect();
+            var hintCoords = _hint.getBoundingClientRect();
+
+            // Позиционируем верх/низ
+            if(window.innerHeight < targetCoords.top + _hint.offsetHeight){
+                _hint.style.top = targetCoords.top + _target.offsetHeight - _hint.offsetHeight - hintCoords.top - 20 + 'px';
+            } else {
+                _hint.style.top = targetCoords.top - hintCoords.top + 'px';
+            }
+
+            // позиционирование лево/право
+            var positionByWidthLeft = targetCoords.left - _hint.offsetWidth - hintCoords.left;
+            var positionByWidthRight = targetCoords.left + _target.offsetWidth - hintCoords.left;
+            // Проверяем выходит ли хинт за правый край окна
+            if(window.innerWidth < (positionByWidthRight + _hint.offsetWidth)){
+                _hint.style.left = positionByWidthLeft + 'px';
+            } else {
+                _hint.style.left = positionByWidthRight + 'px'
+            }
+        }
+        classList.add('hint--visible')
+    } else {
+        classList.remove('hint--visible');
+        _hint.style.top = 0;
+        _hint.style.left = 0;
+    }
+}
+
+function Hint_SetValue(_domObject ,_value)
+{
+    //удаляем все что лежит в контейнере
+    while (_domObject.firstChild) {
+        _domObject.removeChild(_domObject.firstChild);
+    }
+    if(_value instanceof Node){
+        _domObject.appendChild(_value);
+    } else {
+        _domObject.innerText = _value;
+    }
+}

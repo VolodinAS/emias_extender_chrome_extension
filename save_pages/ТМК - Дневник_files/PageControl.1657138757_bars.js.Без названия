@@ -1,0 +1,278 @@
+SYS_ControlActions['PageControl']=new Array();
+SYS_ControlActions['PageControl']['visible']={set:PageControl_SetVisible,get:PageControl_GetVisible};
+SYS_ControlActions['PageControl']['hint']={set:_setHint,get:_getHint};
+SYS_ControlActions['PageControl']['enabled']={set:PageControl_setEnabled,get:GetEnabled};
+
+SYS_ControlActions['TabSheet']=new Array();
+SYS_ControlActions['TabSheet']['visible']={set:setTabSheetVisibleByTabSheet};
+SYS_ControlActions['TabSheet']['enabled']={set:TabSheet_setEnabled,get:GetEnabled};
+
+function PageControl_setEnabled(_dom, _state) {
+	_dom.setAttribute('enabled', _state);
+	PageControlCreate(_dom);
+}
+function TabSheet_setEnabled(_dom, _state) {
+	_dom.setAttribute('enabled', _state);
+	showTab(getControlByName(getButtonNameByTabSheet(_dom.getAttribute('name'))), 'active');
+}
+function PageControlCreate(_dom, _donothide) {
+	if (hasProperty(_dom, 'onpagechange') && hasProperty(_dom, 'name')) {
+		var name = getProperty(_dom, 'name');
+		var onchange = getProperty(_dom, 'onpagechange');
+
+		getPageByDom(_dom).addListener('onpagechange_' + name, function (showIndex, hideIndex) {
+			eval(onchange);
+		});
+	}
+	if (getProperty(_dom, 'mode') == 'gorizontal') {
+		var _tmp = _dom.getElementsByTagName('tr');
+
+		if (_tmp.length > 0) _tmp = _tmp[0].getElementsByTagName('td');
+
+		var _tab_con = '';
+		for (var _i = 0; _i < _tmp.length; _i++) {
+			if (getProperty(_tmp[_i], 'cmptype') == 'TabButtonContainer') {
+				_tab_con = _tmp[_i];
+				break;
+			}
+		}
+		var _first = null;
+		var _tab = _tab_con.getElementsByTagName('div');
+		var _wasactivate;
+		if (_tab_con) {
+			for (var _i = 0; _i < _tab.length - 1; _i++) {
+				if (!_first && getProperty(_tab[_i], 'hide') != 'true' && _wasactivate != 1) _first = _tab[_i];
+
+				if (getProperty(_tab[_i], 'activ') == 'true' && getProperty(_tab[_i], 'hide') != 'true' && _wasactivate != 1) {
+
+					showTab(_tab[_i]);
+					_first = null;
+					_wasactivate = 1;//break;
+				}
+
+				if (getProperty(_tab[_i], 'hide') == 'true' && _donothide != 1) {
+					setTabSheetVisible(_tab[_i], 0);
+				}
+			}
+		} else return;
+	} else if (getProperty(_dom, 'mode') == 'vertical') {
+		var _first = null;
+		var _wasactivate;
+		var _tabbutton = _dom.getElementsByTagName('td');
+		for (var _i = 0; _i < _tabbutton.length; _i++) {
+			if (getProperty(_tabbutton[_i], 'cmptype') == 'TabButton') {
+				if (!_first && getProperty(_tabbutton[_i], 'hide') != 'true' && _wasactivate != 1) _first = _tabbutton[_i];
+				if (getProperty(_tabbutton[_i], 'activ') == 'true' && getProperty(_tabbutton[_i], 'hide') != 'true' && _wasactivate != 1) {
+					showTab(_tabbutton[_i]);
+					_first = null;
+					_wasactivate = 1;//break;
+				}
+
+				if (getProperty(_tabbutton[_i], 'hide') == 'true' && _donothide != 1) {
+					setTabSheetVisible(_tabbutton[_i], 0);
+				}
+			}
+		}
+	}
+
+	if (_first) {
+		showTab(_first);
+	}
+}
+
+function showTab(domObject,active) {
+	var _tabbutton_name;
+	var _pc = GetConteiner(domObject, 'PageControl');
+	var prev_index = null;
+	var curr_index = null;
+	if (typeof active == 'undefined') {
+		_tabbutton_name = getProperty(domObject, 'name', '');
+		_pc.setAttribute('activ_tabsheet', _tabbutton_name);
+	} else {
+		_tabbutton_name = _pc.getAttribute('activ_tabsheet');
+	}
+	var _tabbuttoncon = GetConteiner(domObject, 'TabButtonContainer');
+
+	var _con_name = getProperty(_pc,'name','');
+	var _tmpName = '';
+	var _css = getProperty(_pc, 'class', null);
+	if (getProperty(_pc, 'mode') == 'gorizontal') {
+		var _all_tab = _tabbuttoncon.getElementsByTagName('div');
+		for (var _i = 0; _i < _all_tab.length - 1; _i++) {
+			_tmpName = getProperty(_all_tab[_i], 'name');
+			if (empty(_tmpName)) continue;
+			var tabSh = getControlByName(_tmpName + '_TabSheet');
+			if (getProperty(tabSh, 'enabled') === 'false' || getProperty(_pc, 'enabled') === 'false') {
+				tabSh.style.display = "none";
+				_all_tab[_i].className = _css + "-enabled";
+				if (_all_tab[_i].getAttribute('onclick')) {
+					_all_tab[_i].setAttribute('noclick', _all_tab[_i].getAttribute('onclick'));
+					_all_tab[_i].removeAttribute('onclick');
+				}
+			} else {
+				if (_tabbutton_name == _tmpName) {
+					//отображение выбранный таб
+					_all_tab[_i].className = _css + "-selected noselect";
+					_all_tab[_i].setAttribute('activ', 'true');
+					tabSh.style.display = "";
+					curr_index = getProperty(tabSh, 'pageindex');
+				} else {
+					//скрывать выбранный ранее таб
+					_all_tab[_i].className = _css + "-general noselect";
+					_all_tab[_i].setAttribute('activ', 'false');
+					getControlByName(_tmpName + '_TabSheet').style.display = "none";
+					prev_index = getProperty(getControlByName(_tmpName + '_TabSheet'), 'pageindex');
+				}
+				if (_all_tab[_i].getAttribute('noclick')) {
+					_all_tab[_i].setAttribute('onclick', _all_tab[_i].getAttribute('noclick'));
+					_all_tab[_i].removeAttribute('noclick');
+				}
+			}
+		}
+	} else if (getProperty(_pc, 'mode') == 'vertical') {
+		var _all_tab = _pc.getElementsByTagName('td');
+		for (var _i = 0; _i < _all_tab.length; _i++) {
+			if (getProperty(_all_tab[_i], 'cmptype') == 'TabButton') {
+				_tmpName = getProperty(_all_tab[_i], 'name');
+				if (_tmpName == _tabbutton_name) {
+
+					_all_tab[_i].setAttribute('activ', 'true');
+					var _tsh = getControlByName(_tmpName + '_TabSheet');
+					if (getProperty(_tsh, 'enabled') === 'false' || getProperty(_pc, 'enabled') === 'false') {
+						_tsh.style.display = "none";
+						_all_tab[_i].className = _css + "-enabled";
+						if (_all_tab[_i].getAttribute('onclick')) {
+							_all_tab[_i].setAttribute('noclick', _all_tab[_i].getAttribute('onclick'));
+							_all_tab[_i].removeAttribute('onclick');
+						}
+					} else {
+						if (_all_tab[_i].getAttribute('noclick')) {
+							_all_tab[_i].setAttribute('onclick', _all_tab[_i].getAttribute('noclick'));
+							_all_tab[_i].removeAttribute('noclick');
+						}
+						_all_tab[_i].className = _css + "-selected noselect";
+						curr_index = getProperty(_all_tab[_i], 'pageindex');
+						_tsh.style.display = "";
+						_tsh.parentNode.className = _css + "-box-selected";
+					}
+				} else {
+					_all_tab[_i].setAttribute('activ', 'false');
+					var _tsh = getControlByName(_tmpName + '_TabSheet');
+					if (getProperty(_tsh, 'enabled') === 'false' || getProperty(_pc, 'enabled') === 'false') {
+						_tsh.style.display = "none";
+						_all_tab[_i].className = _css + "-enabled";
+						if (_all_tab[_i].getAttribute('onclick')) {
+							_all_tab[_i].setAttribute('noclick', _all_tab[_i].getAttribute('onclick'));
+							_all_tab[_i].removeAttribute('onclick');
+						}
+					} else {
+						if (_all_tab[_i].getAttribute('noclick')) {
+							_all_tab[_i].setAttribute('onclick', _all_tab[_i].getAttribute('noclick'));
+							_all_tab[_i].removeAttribute('noclick');
+						}
+						_all_tab[_i].className = _css + "-general noselect";
+						prev_index = getProperty(_all_tab[_i], 'pageindex');
+						_tsh.style.display = "none";
+
+						_tsh.parentNode.className = _css + "-box-general";
+					}
+				}
+			}
+		}
+	}
+
+	if(_con_name){
+		getPageByDom(domObject).dispatchEvent('onpagechange_'+_con_name,curr_index,prev_index);
+	}
+
+	//TODO при переключение между вкладками сделать перестроение документа
+    runCalcSize(getPageByDom(domObject).form.containerForm);
+	if (D3Api) {
+		D3Api.resize();
+	}
+}
+function PageControl_SetVisible(_domObject,_visible) {
+	_domObject.style.display = (_visible) ? '' : 'none';
+}
+function PageControl_GetVisible() {
+	return _domObject.style.display == '';
+}
+/*Делает закладку активной по имени*/
+function tabSheetActivate(_nameTabSheet/* на самом деле это имя не TabSheet а TabButton*/) {
+	_tabSheet = getControlByName(_nameTabSheet);
+	_pc = GetConteiner(_tabSheet, 'PageControl');
+	_activTabSheet = getProperty(_pc, 'activ_tabsheet');
+	if (_activTabSheet != _nameTabSheet) {
+		if (getProperty(_tabSheet, 'hide') == 'true') setTabSheetVisible(_tabSheet, 1);
+		showTab(_tabSheet);
+	}
+}
+
+function setTabSheetVisible(_dom/* объект tabButton**/, _flag/*0-невидимый;1-видимый;*/) {
+	_pc = GetConteiner(_dom, 'PageControl');
+	_activTabSheet = getProperty(_pc, 'activ_tabsheet');
+	_tabbutton_name = getProperty(_dom, 'name', '');
+	if (getProperty(_pc, 'mode') == 'gorizontal') {
+		if (!_flag) //(_flag==0)
+		{
+			_dom.style.display = 'none';
+			_dom.setAttribute('hide', 'true');
+			getControlByName(_tabbutton_name + '_TabSheet').style.display = 'none';
+		} else {
+			_dom.style.display = '';
+			_dom.setAttribute('hide', 'false');
+			//getControlByName(_tabbutton_name+'_TabSheet').style.display='none';
+		}
+	} else if (getProperty(_pc, 'mode') == 'vertical') {
+		if (!_flag) //(_flag==0)
+		{
+			_dom.parentNode.style.display = 'none';	//скрываем всю tr TabButtonContainer
+			_dom.setAttribute('hide', 'true');
+			//от div переходим к tr
+			getControlByName(_tabbutton_name + '_TabSheet').parentNode.parentNode.style.display = 'none';
+
+			//если скрываемая вкладка в этот момент активна, то снимаем атрибут "activ" и запускаем процедуру которая активизирует первую вкладку
+			if (_activTabSheet == _tabbutton_name) //сделать активной первую
+			{
+				_dom.setAttribute('activ', 'false');
+				PageControlCreate(_pc, 1);
+			}
+
+		} else {
+			_dom.parentNode.style.display = '';	//скрываем всю tr TabButtonContainer
+			_dom.setAttribute('hide', 'false');
+			//от div переходим к tr
+			getControlByName(_tabbutton_name + '_TabSheet').parentNode.parentNode.style.display = '';
+		}
+
+	}
+
+
+}
+
+function setTabSheetVisibleByName(_nameTabButton/*имя tabbutton*/, _flag/*0-невидимый;1-видимый;*/) {
+	_tab_dom = getControlByName(_nameTabButton);
+	setTabSheetVisible(_tab_dom, _flag);
+}
+function getTabSheetVisibleByName(_nameTabButton/*имя tabbutton*/) {
+	var _tab_dom = getControlByName(_nameTabButton);
+	return _tab_dom.style.display == '';
+}
+function setTabSheetVisibleByTabSheetName(_nameTabSheet, _flag/*0-невидимый;1-видимый;*/) {
+	_nameTabButton = getButtonNameByTabSheet(_nameTabSheet);
+	_tab_dom = getControlByName(_nameTabButton);
+	setTabSheetVisible(_tab_dom, _flag);
+}
+
+function setTabSheetVisibleByTabSheet(_dom /*объект TabSheet*/, _flag/*0-невидимый;1-видимый;*/) {
+	_nameTabSheet = getProperty(_dom, 'name', '');
+	_nameTabButton = getButtonNameByTabSheet(_nameTabSheet);
+	_tab_dom = getControlByName(_nameTabButton);
+	setTabSheetVisible(_tab_dom, _flag);
+}
+
+function getButtonNameByTabSheet(_nameTabSheet) {
+	_ind = _nameTabSheet.indexOf('_TabSheet');
+	_substr_name = _nameTabSheet.substr(0, _ind);
+	return _substr_name;
+}

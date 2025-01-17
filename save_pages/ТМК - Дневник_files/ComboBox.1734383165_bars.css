@@ -1,0 +1,126 @@
+table.combo-box{
+    height:22px;
+    display:inline-table;
+    vertical-align:bottom;
+    color: #000000;
+    font-weight: normal;
+    -moz-user-select:none;
+    -o-user-select:none;
+    -khtml-user-select:none;
+    background: url('../images/combo-box.png') no-repeat top right white;
+    border-collapse: separate;
+}
+table.combo-box[anyvalue="true"]{
+    -moz-user-select:text;
+    -o-user-select:text;
+    -khtml-user-select:text;
+}
+table.combo-box-enable:hover{
+ background-position: right -20px;
+}
+table.combo-box-disable{
+  cursor:default;
+  background-position: right -40px;
+}
+
+table.combo-box  input[type="text"]{
+	border-right-width: 0;
+	background-color: #FFFFFF;
+	cursor: pointer;
+}
+td.cmbb-button{
+	 width: 20px;
+}
+td.cmbb-droplist{
+	width: 0px;
+}
+img.combo-box{
+	 width: 20px;
+	 height: 19px;
+	 vertical-align: top;
+}
+
+img.combo-box-enable{
+	cursor:pointer;
+}
+
+img.combo-box-enable:hover {
+}
+
+img.combo-box-disable{
+  cursor:default;
+}
+
+div.combo-box-drop-list{
+	display: none;
+	position: absolute;
+	padding: 0px 0px 0 0;
+	overflow: auto;
+	overflow-x: hidden;
+	border: 1px solid #5793bc;
+	text-align:left;
+	z-index: 10;
+	background: #fff;
+	max-width: 360px;
+	box-sizing: border-box;
+}
+
+div.combo-box-drop-list table{
+	margin: 0px;
+	overflow: hidden;
+	/*table-layout: fixed;*/
+	width: 100%;
+	text-align: left;
+}
+
+div.combo-box-drop-list table tr{
+	background-color: white;
+	cursor: pointer;
+}
+div.combo-box-drop-list table tr td{
+    padding: 1px 4px;
+}
+div.combo-box-drop-list table tr td .item_block{
+    min-height: 18px;
+}
+
+div.combo-box-drop-list table tr.combo-item-selected{
+	background-color: #92d2fd;
+}
+
+div.combo-box-drop-list table tr:hover{
+	background-color: #92d2fd !important;
+	cursor: pointer;
+}
+
+div.combo-box-drop-list table tr.combo-item-disabled,
+div.combo-box-drop-list table tr.combo-item-disabled:hover
+{
+	background-color: lightgrey !important;
+	cursor: default;
+}
+
+/** Стили для Иерархического комбобокса **/
+div.combo-box-drop-list table[ishierh="true"] tr span.btnOCM {
+	width: 18px;
+	height: 18px;
+	display: inline-block;
+	cursor: pointer;
+	vertical-align: middle;
+}
+
+div.combo-box-drop-list table[ishierh="true"] tr.opened span.btnOCM {
+	background: url("../images/sq.png") left -1px no-repeat transparent;
+}
+div.combo-box-drop-list table[ishierh="true"] tr.closed span.btnOCM {
+	background: url("../images/sq.png") left -62px no-repeat transparent;
+}
+div.combo-box-drop-list table[ishierh="true"] tr:not([parent_id]) span.btnOCM {
+	display: none;/*это не иерархический справочник*/
+}
+div.combo-box-drop-list table[ishierh="true"] tr.hide {
+	display: none;
+}
+div.combo-box-drop-list table[ishierh="true"] tr[sample="true"]{
+	display: none;
+}

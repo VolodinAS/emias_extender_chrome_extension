@@ -1,0 +1,52 @@
+SYS_ControlActions['Button']=new Array();
+SYS_ControlActions['Button']['caption']={set:Button_SetCaption,get:Button_GetCaption};
+SYS_ControlActions['Button']['value']={set:Button_SetValue,get:Button_GetValue};
+SYS_ControlActions['Button']['enabled']={set:Button_SetEnabled,get:GetEnabled};
+SYS_ControlActions['Button']['visible']={set:Button_SetVisible,get:Button_GetVisible};
+SYS_ControlActions['Button']['hint']={set:_setHint,get:_getHint};
+
+function Button_SetValue(_domObject,_value)
+{
+	_domObject.setAttribute('keyvalue', _value);
+}
+
+function Button_GetValue(_domObject)
+{
+	return getProperty(_domObject, 'keyvalue', '');
+}
+
+function Button_SetCaption(_domObject,_value)
+{
+    _domObject.querySelector('.btnc-caption').innerHTML = _value;
+}
+
+function Button_GetCaption(_domObject)
+{
+	return _domObject.querySelector('.btnc-caption').innerHTML || '';
+}
+function Button_SetEnabled(_dom, _state /*true/false типа boolean!!!*/)
+{
+	if (_getControlProperty(_dom, 'enabled') != _state)
+	{
+		if (_state) //делаем активным
+		{
+		  _dom.setAttribute('enabled', 'true');
+		  _dom.className="btn-block noselect";
+		}
+		else //делаем неактивным
+		{
+		  _dom.setAttribute('enabled', 'false');
+		  _dom.className="btn-disable noselect";
+		}
+	}
+}
+
+function Button_SetVisible(_dom, _flag)
+{
+	_dom.style.display = _flag ? '' : 'none';
+}
+
+function Button_GetVisible(_dom)
+{
+	return _dom.style.display == '';
+}

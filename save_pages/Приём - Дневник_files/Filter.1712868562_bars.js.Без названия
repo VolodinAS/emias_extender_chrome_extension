@@ -1,0 +1,290 @@
+SYS_ControlActions['FilterItem']=new Array();
+SYS_ControlActions['FilterItem']['upper']={get:FilterItem_GetUpper};
+SYS_ControlActions['FilterItem']['condition']={get:FilterItem_GetCondition};
+SYS_ControlActions['FilterItem']['like']={get:FilterItem_GetLike};
+SYS_ControlActions['FilterItem']['filterkind']={get:FilterItem_GetFilterKind};
+
+//ComboBox
+if(typeof(SYS_ControlActions['ComboBox']) == 'undefined'){SYS_ControlActions['ComboBox']=new Array();}
+SYS_ControlActions['ComboBox']['upper']=SYS_ControlActions['FilterItem']['upper'];
+SYS_ControlActions['ComboBox']['condition']=SYS_ControlActions['FilterItem']['condition'];
+SYS_ControlActions['ComboBox']['like']=SYS_ControlActions['FilterItem']['like'];
+SYS_ControlActions['ComboBox']['filterkind']=SYS_ControlActions['FilterItem']['filterkind'];
+//Edit
+if(typeof(SYS_ControlActions['Edit']) == 'undefined'){SYS_ControlActions['Edit']=new Array();}
+SYS_ControlActions['Edit']['upper']=SYS_ControlActions['FilterItem']['upper'];
+SYS_ControlActions['Edit']['condition']=SYS_ControlActions['FilterItem']['condition'];
+SYS_ControlActions['Edit']['like']=SYS_ControlActions['FilterItem']['like'];
+SYS_ControlActions['Edit']['filterkind']=SYS_ControlActions['FilterItem']['filterkind'];
+//DateEdit
+if(typeof(SYS_ControlActions['DateEdit']) == 'undefined'){SYS_ControlActions['DateEdit']=new Array();}
+SYS_ControlActions['DateEdit']['upper']=SYS_ControlActions['FilterItem']['upper'];
+SYS_ControlActions['DateEdit']['condition']=SYS_ControlActions['FilterItem']['condition'];
+SYS_ControlActions['DateEdit']['like']=SYS_ControlActions['FilterItem']['like'];
+SYS_ControlActions['DateEdit']['filterkind']=SYS_ControlActions['FilterItem']['filterkind'];
+//ButtonEdit
+if(typeof(SYS_ControlActions['ButtonEdit']) == 'undefined'){SYS_ControlActions['ButtonEdit']=new Array();}
+SYS_ControlActions['ButtonEdit']['upper']=SYS_ControlActions['FilterItem']['upper'];
+SYS_ControlActions['ButtonEdit']['condition']=SYS_ControlActions['FilterItem']['condition'];
+SYS_ControlActions['ButtonEdit']['like']=SYS_ControlActions['FilterItem']['like'];
+SYS_ControlActions['ButtonEdit']['filterkind']=SYS_ControlActions['FilterItem']['filterkind'];
+
+function FilterItem_GetValue(_domObject,_value/*Значение компонента*/)
+{
+	_upper = _getControlProperty(_domObject, 'upper');
+	_cond  = _getControlProperty(_domObject, 'condition');
+	_like    = _getControlProperty(_domObject, 'like');
+	_fkind  = _getControlProperty(_domObject, 'filterkind');
+	//_value = quickGetProperty(_domObject, 'value');
+    if (_value && _fkind!='perioddate' && _fkind!='periodtime' && _fkind!='perioddatetime' && _fkind!='periodnumb' && _fkind!='unitmulti' && _fkind!='multi_hier' && _fkind!='multi_hier_sep'){
+		if (_like != 'none' && (_fkind=='text' || _fkind=='data' || _fkind=='unitedit')){
+			switch (_like){
+				case 'left' : _value= '%'+_value;
+				break;
+				case 'right' : _value= _value+'%';
+				break;
+				case 'both' : _value= '%'+_value+'%';
+				break;
+			}
+		}
+		if (_cond != 'none'){
+			switch (_cond){
+				case 'like':{
+					if(_fkind=='text' || _fkind=='data' || _fkind=='unitedit')_value='~'+_value;
+					else _value='='+_value;
+					break;
+				}
+				case 'gt': _value='>'+_value;
+				break;
+				case 'lt': _value='<'+_value;
+				break;
+				case 'gteq': _value='['+_value;
+				break;
+				case 'lteq': _value=']'+_value;
+				break;
+				case 'eq': _value='='+_value;
+				break;
+				case 'neq': _value='!'+_value;
+				break;
+				case 'in': _value='{'+_value;
+				break;
+			}
+		}
+		if (_upper=='true' && _fkind=='text'){
+			_value='^'+_value;
+		}
+	}
+	return _value;
+}
+function FilterItem_GetFilterKind(_domObject)
+{
+	return getProperty(_domObject, 'filterkind', '');
+}
+function FilterItem_GetUpper(_domObject)
+{
+	return getProperty(_domObject, 'upper', '');
+}
+
+function FilterItem_GetCondition(_domObject)
+{
+	return getProperty(_domObject, 'condition', '');
+}
+
+function FilterItem_GetLike(_domObject)
+{
+	return getProperty(_domObject, 'like', '');
+}
+
+function fi_create(_dom) {
+    var _ctrlname = getProperty(_dom, 'name', '');
+    var _ds = getProperty(_dom, 'refreshdataset', '');
+    var _inDS = getProperty(_dom, 'inds', '');
+    var _fieldname = _fieldname = '_f[' + getProperty(_dom, 'field', '');
+    var _fkind = getProperty(_dom, 'filterkind', '');
+    var _not_append_ds = getProperty(_dom, 'not_append_ds', '');
+    var hostName = getProperty(_dom, 'host_component', '');
+    if (_fkind == 'perioddate' || _fkind == 'date') {
+        _fieldname += ';D' + ';' + _ctrlname;
+    } else if (_fkind == 'periodtime' || _fkind == 'time') {
+        _fieldname += ';T' + ';' + _ctrlname;
+    } else if (_fkind == 'perioddatetime') {
+        _fieldname += ';DT' + ';' + _ctrlname;
+    } else if (_fkind == 'periodnumb' || _fkind == 'numb') {
+        _fieldname += ';N' + ';' + _ctrlname;
+    } else if (_fkind == 'multi_hier') {
+        _fieldname += ';H' + ';' + (getControlByName(_ctrlname).getAttribute('unit')) + ';' + (getControlByName(_ctrlname).getAttribute('composition'));
+    } else if (_fkind == 'multi_hier_sep') {
+        _fieldname += ';HS' + ';' + (getControlByName(_ctrlname).getAttribute('unit')) + ';' + (getControlByName(_ctrlname).getAttribute('composition'));
+    } else if (_fkind == 'unitmulti') {
+        _fieldname += (getProperty(_dom, 'insubquery', false)) ? ';I' : ';M';
+    }
+    _fieldname += ']';
+    /*если несколько дата сетов*/
+    var filterArray = getPage().form.FilterItems;
+    var _ds = getProperty(_dom, 'refreshdataset', '');
+    var _dsarr = _ds.split(';');
+    if (_dsarr.length > 0 && !getProperty(_dom, 'inds')) {
+        for (var i = 0; i < _dsarr.length; i++) {
+            if (empty(_not_append_ds))
+                addSystemInfo(_dsarr[i], {get: _fieldname, srctype: 'ctrl', src: _ctrlname, ignorenull: false});
+            if (typeof (filterArray[_dsarr[i]]) == 'undefined')
+                filterArray[_dsarr[i]] = new Array(_ctrlname);
+            else
+                filterArray[_dsarr[i]].push(_ctrlname);
+        }
+    }
+    if (hostName && isExistsControlByName(hostName)) {
+        _dom.host = getControlByName(hostName);
+        if (_dom.host) {
+            var hostCmpType = _dom.host.getAttribute('cmptype');
+            if (hostCmpType && SYS_ControlActions[hostCmpType] && SYS_ControlActions[hostCmpType]['locate']) {
+                _dom.canLocate = true;
+            }
+        }
+    }
+}
+
+/**
+ * при нажании на Enter или выборе из списка в поле фильтра для компонентов.
+ */
+function fi_refresh() {
+    var _domObject = this;
+    if (!hasProperty(this, 'cmptype')) {
+        _domObject = _domObject.parentNode;
+    }
+    var _parentDOM = _domObject;
+    var cmptype = _parentDOM.getAttribute('cmptype');
+    var class_name = _parentDOM.getAttribute('class');
+    var form = class_name && ~class_name.indexOf('formBackground') ? true : false;
+    while (cmptype !== 'Grid' && cmptype !== 'StatGrid' && cmptype !== 'Tree' && !form) {
+        _parentDOM = _parentDOM.parentNode;
+        cmptype = _parentDOM.getAttribute('cmptype');
+        class_name = _parentDOM.getAttribute('class');
+        form = class_name && ~class_name.indexOf('formBackground') ? true : false;
+    }
+    var range = _parentDOM.querySelector('[cmptype="Range"]');
+    var _ds = getProperty(_domObject, 'refreshdataset', '');
+
+    if (!empty(_ds)) {
+        var _dsarr = _ds.split(';');
+        if (!empty(range)) {
+            /* в случае присутствия пагинации сбрасываем страницу (т.е. переключаемся на первую) */
+            var first_page = range.querySelector('.range-page__first');
+            first_page && RangeGotoPage(first_page, first_page._type, parseInt(first_page.value));
+        }
+        if (cmptype === 'Grid') {
+            D3Api.GridCtrl.filterKeyPress(_domObject);
+        } else if (cmptype === 'StatGrid') {
+            D3Api.StatGridCtrl.filterKeyPress(_domObject, false);
+        } else {
+            if (_domObject.canLocate) {
+                var value = getControlValue(_domObject.host);
+                if (value) _setControlProperty(_domObject.host, 'locate', value);
+            }
+            for (var i = 0; i < _dsarr.length; i++) {
+                refreshDataSet(_dsarr[i]);
+            }
+        }
+
+    }
+}
+function fi_onchange(_domObject)
+{
+	var _ds=getProperty(_domObject, 'refreshdataset', '');
+        if(!empty(_ds)){
+            var _dsarr = _ds.split(';');
+            for (var i=0;i<_dsarr.length;i++)
+            {
+                    refreshDataSet(_dsarr[i]);
+            }
+            var ctrl=_ds.slice(2);
+            if(isExistsControlByName(ctrl+'_SelectList')) {
+                    //if(!empty(getValue(ctrl+'_SelectList')))SelectList_uncheckItems(ctrl+'_SelectList');
+            }
+        }
+}
+
+function f_clear(_dom,_ds)
+{
+	if(!_ds) {
+		var _filter = GetConteiner(_dom, 'Filter');
+		var _ds = getProperty(_filter, 'dataset', '');
+	   	var _dsarr = _ds.split(';');
+	   	for (var i=0;i<_dsarr.length;i++)
+		{
+			f_clear_without_refresh(_dsarr[i]);
+			refreshDataSet(_dsarr[i]);
+		}
+        return;
+	}
+	f_clear_without_refresh(_ds);
+	refreshDataSet(_ds);
+}
+function f_refresh(_dom,_ds)
+{
+	if(!_ds) {
+		var _filter = GetConteiner(_dom, 'Filter');
+		var _ds = getProperty(_filter, 'dataset', '');
+		var _dsarr = _ds.split(';');
+	   	for (var i=0;i<_dsarr.length;i++)
+		{
+			//f_clear_without_refresh(_dsarr[i]);
+			refreshDataSet(_dsarr[i]);
+		}
+        return;
+	}
+	refreshDataSet(_ds);
+}
+function f_clear_without_refresh(_ds)
+{
+	var _filterArray = getPage().form.FilterItems;
+        if(empty(_filterArray[_ds])) return;
+	for (var _i=0;_i<_filterArray[_ds].length;_i++)
+	{
+		var _fitemName = _filterArray[_ds][_i];
+		if (getProperty(getControlByName(_fitemName), 'cmptype')=='ButtonEdit') setCaption(_fitemName,'');
+        setValue(_fitemName,'');
+        var is_f_def_begin = typeof(getProperty(getControlByName(_fitemName), 'filter_default_value_begin')) !== "undefined" &&
+                             getProperty(getControlByName(_fitemName), 'filter_default_value_begin') !== null;
+        var is_f_def_end = typeof(getProperty(getControlByName(_fitemName), 'filter_default_value_end')) !== "undefined" &&
+                           getProperty(getControlByName(_fitemName), 'filter_default_value_end') !== null;
+        //если у фильтра было значение по умолчанию - выставим его после очистки
+		if (is_f_def_begin) {
+            setValue(_fitemName, getProperty(getControlByName(_fitemName), 'filter_default_value_begin'));
+        }
+        if (is_f_def_end) {
+            setValue(_fitemName, getProperty(getControlByName(_fitemName), 'filter_default_value_end'));
+        }
+	}
+}
+function f_is_empty(_ds){
+	var _filterArray = getPage().form.FilterItems;
+	if(typeof(_filterArray)=='undefined') return;
+        if(empty(_filterArray[_ds])) return;
+	for (var _i=0;_i<_filterArray[_ds].length;_i++)
+	{
+		var _fitemName = _filterArray[_ds][_i];
+		var value;
+		if (getProperty(getControlByName(_fitemName), 'cmptype')=='ButtonEdit') value=getCaption(_fitemName);
+		value=getValue(_fitemName);
+		if(!empty(value))return false;
+	}
+	return true;
+}
+function fi_setdefaultvalue(_domObject,_value){
+	var _domObject=_domObject;
+	if(!hasProperty(_domObject, 'cmptype')){
+		_domObject=_domObject.parentNode;
+	}
+	setControlValue(_domObject,_value);
+}
+function fi_checkCorrectDate() {
+    var domFilterItem = this;
+    /* регулярка для даты взята из Components/Mask/js/mask.js */
+    var regExpDate = new RegExp('^(((0[1-9]|[12]\\d|3[01])\.(0[13578]|1[02])\.((18|[2-9]\\d)\\d{2}))|((0[1-9]|[12]\\d|30)\.(0[13456789]|1[012])\.((18|[2-9]\\d)\\d{2}))|((0[1-9]|1\\d|2[0-8])\.02\.((18|[2-9]\\d)\\d{2}))|((0[1-9]|[12]\\d|3[01])\.(0[13578]|1[02])\.((19|[2-9]\\d)\\d{2}))|((0[1-9]|[12]\\d|30)\.(0[13456789]|1[012])\.((19|[2-9]\\d)\\d{2}))|((0[1-9]|1\\d|2[0-8])\.02\.((19|[2-9]\\d)\\d{2}))|(29\.02\.((1[6-9]|[2-9]\\d)(0[48]|[2468][048]|[13579][26])|((16|[2468][048]|[3579][26])00))))$');
+    if (!regExpDate.test(getControlValue(domFilterItem))) {
+        D3Api.showAlert('Некорректная дата');
+        return;
+    }
+    fi_refresh.bind(domFilterItem)();
+}
