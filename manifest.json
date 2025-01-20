@@ -8,15 +8,18 @@
     "description": "Расширяет некоторые утраченные функции ЕМИАС",
     "version": "1.0",
     "icons": {
-        "16": "images/logo/logo-default-16х16.png",
-        "32": "images/logo/logo-default-32x32.png",
-        "48": "images/logo/logo-default-48х48.png",
-        "128": "images/logo/logo-default-128x128.png"
+        "16": "images/logo/logo-16х16.png",
+        "32": "images/logo/logo-32x32.png",
+        "48": "images/logo/logo-48х48.png",
+        "64": "images/logo/logo-64x64.png",
+        "128": "images/logo/logo-128x128.png"
     },
     "action": {
         "default_icon": {
-            "16": "images/logo/logo-default-16х16.png",
-            "32": "images/logo/logo-default-32x32.png"
+            "16": "images/logo/logo-16х16.png",
+            "32": "images/logo/logo-32x32.png",
+            "48": "images/logo/logo-48х48.png",
+            "64": "images/logo/logo-64x64.png"
         },
         "default_title": "ЕМИАС Ext.",
         "default_popup": "pages/popup.html"
@@ -24,9 +27,11 @@
     "content_scripts": [
         {
             "matches": [
-                "http://10.63.0.11/"
+				/* "<all_urls>" */
+                "http://10.63.0.11/*"
             ],
             "js": [
+				"core/libs/jquery/jquery-3.7.1.min.js",
                 "core/content_script/index.js"
             ]
         }
